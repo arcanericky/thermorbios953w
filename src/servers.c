@@ -125,6 +125,9 @@ if (fd < 0)
 memset(&sun, 0, sizeof(sun));
 
 sun.sun_family = AF_UNIX;
+/* FIXME: Change to use program options unix_path */
+/*        Also - better path name for easier access by mono, */
+/*        python, etc. */
 memcpy(sun.sun_path, "\0wsd", sizeof("\0wsd"));
 
 ret = bind(fd, (struct sockaddr *) &sun, sizeof(sun));
