@@ -165,7 +165,7 @@ while (1)
 			prog_options.rain_txt = optarg;
 			break;
 		case '?':
-printf("wsd9xxd - Weather Station Daemon for Bios/Thermor 953\n");
+printf("ws9xxd - Weather Station Daemon for Bios/Thermor 953\n");
 printf("Usage:\n");
 printf("\tws9xxd [options]\n");
 printf("Options:\n");
