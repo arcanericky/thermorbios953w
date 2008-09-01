@@ -2,9 +2,7 @@
 #include <config.h>
 #endif
 
-#if 0
 #define FUZZ_SIMULATOR 1
-#endif
 
 #include <asm/types.h>
 #include <linux/hiddev.h>
@@ -204,12 +202,13 @@ while (1)
 			break;
 		case 0x11:	/* Rain */
 			x = (data[5] << 8) + data[6];
+			x = x * 5;
 			printf("%s Rain: ", rtype);
 
 			if ((x | 0xFF00) == x)
 				printf("No Reading\n");
 			else
-				printf("%d clicks\n", x);
+				printf("%d.%d ml\n", x / 10, abs(x % 10));
 			break;
 		case 0x13:	/* Outside Temperature */
 			x = (data[5] << 8) + data[6];
@@ -232,11 +231,13 @@ while (1)
 			break;
 		case 0x15:	/* Wind Directon */
 			x = data[5];
+			x = x % 16;
+			x = x * 225;
 			printf("Wind Direction: ");
 			if (x == 0x10)
 				printf("No Reading\n");
 			else
-				printf("%d\n", x);
+				printf("%d.%d degrees\n", x / 10, abs(x % 10));
 			break;
 		case 0x16:	/* Unknown Wind 1 */
 			printf("%s Unknown Wind 1: %2.2X %2.2X %2.2X\n",
