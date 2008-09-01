@@ -3,7 +3,9 @@
 
 #include <stdio.h>
 
+#if 0
 #define FUZZ_SIMULATOR			1
+#endif
 
 #define RAW_DATA			1
 
