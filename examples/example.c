@@ -2,7 +2,9 @@
 #include <config.h>
 #endif
 
+#if 0
 #define FUZZ_SIMULATOR 1
+#endif
 
 #include <asm/types.h>
 #include <linux/hiddev.h>
