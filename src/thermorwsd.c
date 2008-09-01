@@ -70,7 +70,7 @@ static struct option long_options[] = {
 	{ "time-text",				required_argument, 0, 12 },
 
 	{ "unix-path",				required_argument, 0, 13 },
-
+	{ "foreground",				no_argument,       0, 14 },
 	{ 0, 0, 0, 0 }
 	};
 
@@ -106,6 +106,7 @@ prog_options.wind_dir_txt = "Wind Direction";
 prog_options.wind_speed_txt = "Wind Speed";
 
 prog_options.no_reading_txt = "No Reading";
+prog_options.foreground = 0;
 
 while (1)
 	{
@@ -169,6 +170,9 @@ while (1)
 			break;
 		case 13:
 			prog_options.unix_path = optarg;
+			break;
+		case 14:
+			prog_options.foreground = 1;
 			break;
 		case '?':
 printf("ws9xxd - Weather Station Daemon for Bios/Thermor 953\n");

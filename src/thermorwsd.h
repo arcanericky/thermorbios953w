@@ -39,6 +39,8 @@ struct ws_prog_options
 
 	char *unix_path;
 
+	int foreground;
+
 	char *output_filename;
 	FILE *output_fs;
 
