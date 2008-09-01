@@ -54,20 +54,22 @@ int c;
 int option_index;
 static struct option long_options[] = {
 	{ "inside-temp-adj",		required_argument, 0, 0 },
-	{ "outside-temp-adj",		required_argument, 0, 0 },
-	{ "pressure-adj",			required_argument, 0, 0 },
-	{ "device-name",			required_argument, 0, 0 },
-	{ "log-filename",			required_argument, 0, 0 },
-	{ "debug",					required_argument, 0, 0 },
+	{ "outside-temp-adj",		required_argument, 0, 1 },
+	{ "pressure-adj",			required_argument, 0, 2 },
+	{ "device-name",			required_argument, 0, 3 },
+	{ "log-filename",			required_argument, 0, 4 },
+	{ "debug",					required_argument, 0, 5 },
 
-	{ "inside-temp-text",		required_argument, 0, 0 },
-	{ "outside-temp-text",		required_argument, 0, 0 },
-	{ "humidity-text",			required_argument, 0, 0 },
-	{ "pressure-text",			required_argument, 0, 0 },
-	{ "rain-text",				required_argument, 0, 0 },
+	{ "inside-temp-text",		required_argument, 0, 6 },
+	{ "outside-temp-text",		required_argument, 0, 7 },
+	{ "humidity-text",			required_argument, 0, 8 },
+	{ "pressure-text",			required_argument, 0, 9 },
+	{ "rain-text",				required_argument, 0, 10 },
 
-	{ "date-text",				required_argument, 0, 0 },
-	{ "time-text",				required_argument, 0, 0 },
+	{ "date-text",				required_argument, 0, 11 },
+	{ "time-text",				required_argument, 0, 12 },
+
+	{ "unix-path",				required_argument, 0, 13 },
 
 	{ 0, 0, 0, 0 }
 	};
@@ -122,6 +124,7 @@ while (1)
 	switch (c)
 		{
 		case 'i':
+		case 0:
 			printf("Inside Temperature Offset: %d\n", atoi(optarg));
 			prog_options.in_temp_adj = atoi(optarg);
 			break;
@@ -163,6 +166,9 @@ while (1)
 			break;
 		case 10:
 			prog_options.rain_txt = optarg;
+			break;
+		case 13:
+			prog_options.unix_path = optarg;
 			break;
 		case '?':
 printf("ws9xxd - Weather Station Daemon for Bios/Thermor 953\n");
