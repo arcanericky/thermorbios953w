@@ -20,8 +20,11 @@
 #include "list.h"
 #include "select.h"
 #include "common.h"
+#include "thermorwsd.h"
 
 #include "debug.h"
+
+extern struct ws_prog_options prog_options;
 
 /*---------------------------------------------------------*/
 static int
@@ -125,10 +128,9 @@ if (fd < 0)
 memset(&sun, 0, sizeof(sun));
 
 sun.sun_family = AF_UNIX;
-/* FIXME: Change to use program options unix_path */
-/*        Also - better path name for easier access by mono, */
-/*        python, etc. */
-memcpy(sun.sun_path, "\0wsd", sizeof("\0wsd"));
+memcpy(sun.sun_path, prog_options.unix_path,
+	strlen(prog_options.unix_path) + 1);
+unlink(sun.sun_path);
 
 ret = bind(fd, (struct sockaddr *) &sun, sizeof(sun));
 if (ret < 0)

@@ -168,7 +168,7 @@ if (datatype != DATA_TYPE_RAIN)
 	}
 
 rain = (data[5] << 8) + data[6];
-
+rain = rain * 5;
 DISPLAY_HANDLER(datatype, data[7], rain);
 
 return (0);

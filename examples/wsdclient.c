@@ -25,6 +25,7 @@
 int
 main()
 {
+char path[] = "/tmp/wsd";
 char buf[80];
 struct sockaddr_un sun;
 int fd;
@@ -39,7 +40,7 @@ if (fd == -1)
 
 memset(&sun, 0, sizeof (sun));
 sun.sun_family = AF_UNIX;
-memcpy(sun.sun_path, "\0wsd", 4);
+memcpy(sun.sun_path, path, strlen(path) + 1);
 
 ret = connect(fd, (struct sockaddr *) &sun, sizeof (sun));
 if (ret == -1)

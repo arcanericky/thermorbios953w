@@ -11,7 +11,7 @@
 
 #define NUM_DATA				8
 
-#define UNIX_PATH	"wsd"
+#define UNIX_PATH	"/tmp/wsd"
 
 /* Data Types */
 #define DATA_TYPE_DATE			0x02

@@ -153,8 +153,8 @@ if ((data | 0xFF00) == data)
 	}
 else
 	{
-	output_data("%s %s: %d clicks\n",
-		hlc(datatype), prog_options.rain_txt, data);
+	output_data("%s %s: %d.%d ml\n",
+		hlc(datatype), prog_options.rain_txt, TENTHS(data));
 	}
 
 return 0;
