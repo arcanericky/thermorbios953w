@@ -71,6 +71,7 @@ static struct option long_options[] = {
 
 	{ "unix-path",				required_argument, 0, 13 },
 	{ "foreground",				no_argument,       0, 14 },
+	{ "fuzzy",					no_argument,       0, 15 },
 	{ 0, 0, 0, 0 }
 	};
 
@@ -107,6 +108,7 @@ prog_options.wind_speed_txt = "Wind Speed";
 
 prog_options.no_reading_txt = "No Reading";
 prog_options.foreground = 0;
+prog_options.fuzzy = 0;
 
 while (1)
 	{
@@ -174,6 +176,9 @@ while (1)
 		case 14:
 			prog_options.foreground = 1;
 			break;
+		case 15:
+			prog_options.fuzzy = 1;
+			break;
 		case '?':
 printf("ws9xxd - Weather Station Daemon for Bios/Thermor 953\n");
 printf("Usage:\n");
@@ -209,10 +214,11 @@ proc_data(int *data)
 {
 unsigned int data_type;
 
-#ifdef FUZZ_SIMULATOR
-data[3] = abs(data[3]) % 0x19;
-data[7] = (abs(data[7]) % 0x03) + 1;
-#endif
+if (prog_options.fuzzy)
+	{
+	data[3] = abs(data[3]) % 0x19;
+	data[7] = (abs(data[7]) % 0x03) + 1;
+	}
 
 data_type = data[3];
 
@@ -388,9 +394,10 @@ init_local_listener();
 
 while (1)
 	{
-#ifdef FUZZ_SIMULATOR
-	sleep(1);
-#endif
+	if (prog_options.fuzzy)
+		{
+		sleep(1);
+		}
 
 	wsd_selector();
 	}

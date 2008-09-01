@@ -33,9 +33,10 @@ bw953_open(char *filename)
 {
 int fd;
 
-#ifdef FUZZ_SIMULATOR
-filename = "/dev/urandom";
-#endif
+if (prog_options.fuzzy)
+	{
+	filename = "/dev/urandom";
+	}
 
 fd = open(filename, O_RDWR);
 if (fd == -1)
@@ -125,9 +126,10 @@ int ret;
 int x;
 struct hiddev_event event[NUM_DEVICE_EVENTS];
 
-#ifdef FUZZ_SIMULATOR
-ret = 0;
-#endif
+if (prog_options.fuzzy)
+	{
+	ret = 0;
+	}
 
 ret = read(fd, &event, sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
 if (ret == -1)
@@ -186,28 +188,30 @@ for (i = 0; i < len; i++)
 	uref.values[i] = *(output + i);
 	}
 
-#ifndef FUZZ_SIMULATOR
-ret = ioctl(fd, HIDIOCSUSAGES, &uref);
-if (ret == -1)
+if (prog_options.fuzzy == 0)
 	{
-	perror("ioctl HIDIOCSUSAGES");
-	return ret;
+	ret = ioctl(fd, HIDIOCSUSAGES, &uref);
+	if (ret == -1)
+		{
+		perror("ioctl HIDIOCSUSAGES");
+		return ret;
+		}
 	}
-#endif
 
 rinfo.report_type = HID_REPORT_TYPE_OUTPUT;
 rinfo.report_id = 0x00;
 
 rinfo.num_fields = 1;
 
-#ifndef FUZZ_SIMULATOR
-ret = ioctl(fd, HIDIOCSREPORT, &rinfo);
-if (ret == -1)
+if (prog_options.fuzzy == 0)
 	{
-	perror("ioctl HIDIOCSREPORT");
-	return ret;
+	ret = ioctl(fd, HIDIOCSREPORT, &rinfo);
+	if (ret == -1)
+		{
+		perror("ioctl HIDIOCSREPORT");
+		return ret;
+		}
 	}
-#endif
 
 return 0;
 }

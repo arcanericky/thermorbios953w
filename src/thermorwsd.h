@@ -3,10 +3,6 @@
 
 #include <stdio.h>
 
-#if 0
-#define FUZZ_SIMULATOR			1
-#endif
-
 #define RAW_DATA			1
 
 #define NUM_DATA				8
@@ -42,6 +38,7 @@ struct ws_prog_options
 	char *unix_path;
 
 	int foreground;
+	int fuzzy;
 
 	char *output_filename;
 	FILE *output_fs;
