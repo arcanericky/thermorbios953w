@@ -203,8 +203,8 @@ if (data == 0x10)
 	}
 else
 	{
-	output_data("%s %s: %d\n",
-		hlc(datatype), prog_options.wind_speed_txt, data);
+	output_data("%s %s: %d.%d\n",
+		hlc(datatype), prog_options.wind_dir_txt, TENTHS(data));
 	}
 
 return 0;

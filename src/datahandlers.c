@@ -233,6 +233,7 @@ int
 dh_winddir(int *data)
 {
 int datatype;
+int wind_direction;
 
 log_data(data);
 
@@ -242,7 +243,11 @@ if (datatype != DATA_TYPE_WIND_DIR)
 	/* FIXME: Warning here */
 	}
 
-DISPLAY_HANDLER(datatype, data[7], data[5]);
+wind_direction = data[5];
+wind_direction = wind_direction % 16;
+wind_direction = wind_direction * 225;
+
+DISPLAY_HANDLER(datatype, data[7], wind_direction);
 
 return (0);
 }
