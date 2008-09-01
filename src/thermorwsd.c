@@ -18,6 +18,8 @@
 #include <unistd.h>
 #endif
 
+#include <signal.h>
+
 #include <getopt.h>
 
 #include "thermorwsd.h"
@@ -36,6 +38,8 @@ struct ws_prog_options prog_options;
 struct bw953_device_options dev_options;
 
 #define NUM_INPUT_EVENTS		4
+
+int fd;
 
 /*-----------------------------------------------------------------*/
 int
@@ -331,12 +335,26 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
+void
+sigexit(int signal)
+{
+printf("Signal\n");
+
+(*dev_options.ws_close)(fd);
+
+close_local_listener();
+unlink(prog_options.unix_path);
+
+fclose(prog_options.output_fs);
+
+exit(0);
+}
+
+/*-----------------------------------------------------------------*/
 int
 main(int argc, char *argv[])
 {
 struct select_node *ws_connection;
-
-int fd;
 int ret;
 
 ret = set_prog_options(argc, argv);
@@ -370,6 +388,11 @@ if (ret)
 	}
 
 wsd_init_selector();
+
+/*-------------------*/
+
+signal(SIGINT, sigexit);
+signal(SIGTERM, sigexit);
 
 /*-------------------*/
 
