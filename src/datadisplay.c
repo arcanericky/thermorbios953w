@@ -36,10 +36,13 @@ va_start(ap, fmt);
 ret = vsnprintf(outbuf, sizeof (outbuf), fmt, ap);
 if (ret >= sizeof (outbuf))
 	{
-	fprintf(stderr, "Output data truncated: %s\n", outbuf);
+	fprintf(prog_options.output_fs,
+		"Output data truncated: %s\n", outbuf);
 	}
 
 fprintf(prog_options.output_fs, outbuf);
+fflush(prog_options.output_fs);
+
 wsd_queue_broadcast(outbuf, strlen(outbuf));
 
 return;
@@ -197,7 +200,7 @@ display_winddir(int datatype, int data)
 {
 if (data == 0x10)
 	{
-	printf("Datatype is: %x\n", datatype);
+	fprintf(prog_options.output_fs, "Datatype is: %x\n", datatype);
 	output_data("%s %s: %s\n", hlc(datatype),
 		prog_options.wind_dir_txt, prog_options.no_reading_txt);
 	}

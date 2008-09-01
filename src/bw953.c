@@ -140,7 +140,7 @@ datadump("REC", &event, ret);
 
 if (ret != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
 	{
-	fprintf(stderr, "Short read: %d\n", ret);	
+	fprintf(prog_options.output_fs, "Short read: %d\n", ret);	
 	return -1;
 	}
 
@@ -226,9 +226,12 @@ if (ret == -1)
 	return ret;
 	}
 
-printf("Vendor : %4.4X\n", device_info.vendor);
-printf("Product: %4.4X\n", device_info.product);
-printf("Apps   : %d\n", device_info.num_applications);
+fprintf(prog_options.output_fs,
+	"Vendor : %4.4X\n", device_info.vendor);
+fprintf(prog_options.output_fs,
+	"Product: %4.4X\n", device_info.product);
+fprintf(prog_options.output_fs,
+	"Apps   : %d\n", device_info.num_applications);
 
 return 0;
 }
