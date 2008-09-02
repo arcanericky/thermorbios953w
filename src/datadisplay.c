@@ -82,7 +82,7 @@ return text;
 int
 display_date(int datatype, int *data)
 {
-output_data("%s%s: %2.2d/%2.2d/%2.2d\n",
+output_data("%s%s%2.2d/%2.2d/%2.2d\n",
 	prog_options.data_prefix, prog_options.date_txt, data[1],
 	data[2], data[0]);
 
@@ -93,8 +93,8 @@ return (0);
 int
 display_humidity(int datatype, int data)
 {
-output_data("%s %s: %d%%\n", hlc(datatype),
-	prog_options.humidity_txt, data);
+output_data("%s %s%d%s\n", hlc(datatype),
+	prog_options.humidity_txt, data, prog_options.humidity_suffix_txt);
 
 return (0);
 }
@@ -105,13 +105,14 @@ display_intemp(int datatype, int data)
 {
 if ((data | 0xFF00) == data)
 	{
-	output_data("%s %s: %s\n", hlc(datatype),
+	output_data("%s %s%s\n", hlc(datatype),
 		prog_options.in_temp_txt, prog_options.no_reading_txt);
 	}
 else
 	{
-	output_data("%s %s: %d.%d C\n",
-		hlc(datatype), prog_options.in_temp_txt, TENTHS(data));
+	output_data("%s %s%d.%d%s\n",
+		hlc(datatype), prog_options.in_temp_txt, TENTHS(data),
+			prog_options.in_temp_suffix_txt);
 	}
 
 return (0);
@@ -123,13 +124,14 @@ display_outtemp(int datatype, int data)
 {
 if ((data | 0xFF00) == data)
 	{
-	output_data("%s %s: %s\n", hlc(datatype),
+	output_data("%s %s%s\n", hlc(datatype),
 		prog_options.out_temp_txt, prog_options.no_reading_txt);
 	}
 else
 	{
-	output_data("%s %s: %d.%d C\n",
-		hlc(datatype), prog_options.out_temp_txt, TENTHS(data));
+	output_data("%s %s%d.%d%s\n",
+		hlc(datatype), prog_options.out_temp_txt, TENTHS(data),
+		prog_options.out_temp_suffix_txt);
 	}
 
 return 0;
@@ -139,8 +141,9 @@ return 0;
 int
 display_pressure(int datatype, int data)
 {
-output_data("%s %s: %d.%d C\n",
-	hlc(datatype), prog_options.pressure_txt, TENTHS(data));
+output_data("%s %s%d.%d%s\n",
+	hlc(datatype), prog_options.pressure_txt, TENTHS(data),
+	prog_options.pressure_suffix_txt);
 
 return (0);
 }
@@ -151,13 +154,14 @@ display_rain(int datatype, int data)
 {
 if ((data | 0xFF00) == data)
 	{
-	output_data("%s %s: %s\n",
+	output_data("%s %s%s\n",
 		hlc(datatype), prog_options.rain_txt, prog_options.no_reading_txt);
 	}
 else
 	{
-	output_data("%s %s: %d.%d ml\n",
-		hlc(datatype), prog_options.rain_txt, TENTHS(data));
+	output_data("%s %s%d.%d%s\n",
+		hlc(datatype), prog_options.rain_txt, TENTHS(data),
+		prog_options.rain_suffix_txt);
 	}
 
 return 0;
@@ -167,7 +171,7 @@ return 0;
 int
 display_time(int datatype, int *data)
 {
-output_data("%s%s: %2.2d:%2.2d:%2.2d\n",
+output_data("%s%s%2.2d:%2.2d:%2.2d\n",
 	prog_options.data_prefix, prog_options.time_txt, data[0],
 	data[1], data[2]);
 
@@ -201,12 +205,12 @@ display_winddir(int datatype, int data)
 if (data == 0x10)
 	{
 	fprintf(prog_options.output_fs, "Datatype is: %x\n", datatype);
-	output_data("%s %s: %s\n", hlc(datatype),
+	output_data("%s %s%s\n", hlc(datatype),
 		prog_options.wind_dir_txt, prog_options.no_reading_txt);
 	}
 else
 	{
-	output_data("%s %s: %d.%d\n",
+	output_data("%s %s%d.%d\n",
 		hlc(datatype), prog_options.wind_dir_txt, TENTHS(data));
 	}
 

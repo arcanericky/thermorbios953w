@@ -37,9 +37,44 @@ struct datum_handler data_handlers[DATA_TYPE_MAX];
 struct ws_prog_options prog_options;
 struct bw953_device_options dev_options;
 
-#define NUM_INPUT_EVENTS		4
+int usb_device_fd;
 
-int fd;
+/*-----------------------------------------------------------------*/
+int daemonize()
+{
+pid_t pid;
+
+/* mutual exclusion */
+/* FIXME: Make sure only one copy is running */
+
+/* fork */
+pid = fork();
+if (pid < 0)
+	{
+	/* error forking */
+	perror("fork");
+	return 1;
+	}
+
+/* if parent process, then exit */
+if (pid != 0)
+	{
+	exit(0);
+	}
+
+/* close descriptors */
+/* FIXME: Code to close all but log file */
+
+/* change directory */
+/* FIXME: Change to a home directory if given on command line */
+
+/* set umask */
+
+/* detach from tty and set process group */
+setsid();
+
+return 0;
+}
 
 /*-----------------------------------------------------------------*/
 int
@@ -56,26 +91,76 @@ set_prog_options(int argc, char *argv[])
 {
 int c;
 int option_index;
+enum options
+	{
+	inside_temp_adj,
+	outside_temp_adj,
+	pressure_adj,
+	device_name,
+	log_filename,
+	debug,
+
+	inside_temp_text,
+	inside_temp_suffix_text,
+	outside_temp_text,
+	outside_temp_suffix_text,
+	humidity_text,
+	humidity_suffix_text,
+	pressure_text,
+	pressure_suffix_text,
+	rain_text,
+	rain_suffix_text,
+	date_text,
+	date_suffix_text,
+	time_text,
+	time_suffix_text,
+
+	max_text,
+	min_text,
+	current_text,
+	unix_path,
+	foreground,
+	fuzzy,
+	fuzzy_rate,
+	help
+	};
+
 static struct option long_options[] = {
-	{ "inside-temp-adj",		required_argument, 0, 0 },
-	{ "outside-temp-adj",		required_argument, 0, 1 },
-	{ "pressure-adj",			required_argument, 0, 2 },
-	{ "device-name",			required_argument, 0, 3 },
-	{ "log-filename",			required_argument, 0, 4 },
-	{ "debug",					required_argument, 0, 5 },
+	{ "inside-temp-adj",		required_argument, 0, inside_temp_adj },
+	{ "outside-temp-adj",		required_argument, 0, outside_temp_adj },
+	{ "pressure-adj",			required_argument, 0, pressure_adj },
+	{ "device-name",			required_argument, 0, device_name },
+	{ "log-filename",			required_argument, 0, log_filename },
+	{ "debug",					required_argument, 0, debug },
 
-	{ "inside-temp-text",		required_argument, 0, 6 },
-	{ "outside-temp-text",		required_argument, 0, 7 },
-	{ "humidity-text",			required_argument, 0, 8 },
-	{ "pressure-text",			required_argument, 0, 9 },
-	{ "rain-text",				required_argument, 0, 10 },
+	{ "inside-temp-text",		required_argument, 0, inside_temp_text },
+	{ "inside-temp-suffix-text",
+								required_argument, 0,
+												inside_temp_suffix_text },
+	{ "outside-temp-text",		required_argument, 0, outside_temp_text },
+	{ "outside-temp-suffix-text",
+								required_argument, 0,
+												outside_temp_suffix_text },
+	{ "humidity-text",			required_argument, 0, humidity_text },
+	{ "humidity-suffix-text",	required_argument, 0, humidity_suffix_text },
+	{ "pressure-text",			required_argument, 0, pressure_text },
+	{ "pressure-suffix-text",	required_argument, 0, pressure_suffix_text },
+	{ "rain-text",				required_argument, 0, rain_text },
+	{ "rain-suffix-text",		required_argument, 0, rain_suffix_text },
+	{ "date-text",				required_argument, 0, date_text },
+	{ "date-suffix-text",		required_argument, 0, date_suffix_text },
+	{ "time-text",				required_argument, 0, time_text },
+	{ "time-suffix-text",		required_argument, 0, time_suffix_text },
 
-	{ "date-text",				required_argument, 0, 11 },
-	{ "time-text",				required_argument, 0, 12 },
+	{ "max-text",				required_argument, 0, max_text },
+	{ "min-text",				required_argument, 0, min_text },
+	{ "current-text",			required_argument, 0, current_text },
 
-	{ "unix-path",				required_argument, 0, 13 },
-	{ "foreground",				no_argument,       0, 14 },
-	{ "fuzzy",					no_argument,       0, 15 },
+	{ "unix-path",				required_argument, 0, unix_path },
+	{ "foreground",				no_argument,       0, foreground },
+	{ "fuzzy",					no_argument,       0, fuzzy },
+	{ "fuzzy-rate",				required_argument, 0, fuzzy_rate },
+	{ "help",					no_argument,       0, help },
 	{ 0, 0, 0, 0 }
 	};
 
@@ -83,7 +168,7 @@ char option_map[] = "iopdlv";
 
 prog_options.debug_lvl = 3;
 
-prog_options.output_filename = NULL;
+prog_options.output_filename = "/tmp/ws9xxd.log";
 prog_options.output_fs = stdout;
 
 prog_options.out_temp_adj = 0;
@@ -99,20 +184,28 @@ prog_options.min_txt = "Minimum";
 prog_options.current_txt = "Current";
 
 prog_options.data_prefix = "DATA: ";
-prog_options.time_txt = "Time";
-prog_options.date_txt = "Date";
+prog_options.time_txt = "Time: ";
+prog_options.time_suffix_txt = "";
+prog_options.date_txt = "Date: ";
+prog_options.date_suffix_txt = "";
 
-prog_options.in_temp_txt = "Inside Temperature";
-prog_options.out_temp_txt = "Outside Temperature";
-prog_options.rain_txt = "Rain";
-prog_options.humidity_txt = "Humidity";
-prog_options.pressure_txt = "Pressure";
-prog_options.wind_dir_txt = "Wind Direction";
-prog_options.wind_speed_txt = "Wind Speed";
+prog_options.in_temp_txt = "Inside Temperature: ";
+prog_options.in_temp_suffix_txt = " C";
+prog_options.out_temp_txt = "Outside Temperature: ";
+prog_options.out_temp_suffix_txt = " C";
+prog_options.rain_txt = "Rain: ";
+prog_options.rain_suffix_txt = " ml";
+prog_options.humidity_txt = "Humidity: ";
+prog_options.humidity_suffix_txt = " %";
+prog_options.pressure_txt = "Pressure: ";
+prog_options.pressure_suffix_txt = " mb";
+prog_options.wind_dir_txt = "Wind Direction: ";
+prog_options.wind_speed_txt = "Wind Speed: ";
 
 prog_options.no_reading_txt = "No Reading";
 prog_options.foreground = 0;
 prog_options.fuzzy = 0;
+prog_options.fuzzy_rate = 1;
 
 while (1)
 	{
@@ -131,60 +224,94 @@ while (1)
 	switch (c)
 		{
 		case 'i':
-		case 0:
-			printf("Inside Temperature Offset: %d\n", atoi(optarg));
+		case inside_temp_adj:
 			prog_options.in_temp_adj = atoi(optarg);
 			break;
 		case 'o':
-		case 1:
-			printf("Outside Temperature Offset: %d\n", atoi(optarg));
+		case outside_temp_adj:
 			prog_options.out_temp_adj = atoi(optarg);
 			break;
 		case 'p':
-		case 2:
-			printf("Pressure Offset: %d\n", atoi(optarg));
+		case pressure_adj:
 			prog_options.pressure_adj = atoi(optarg);
 			break;
 		case 'd':
-		case 3:
-			printf("Device Name: %s\n", optarg);
+		case device_name:
 			prog_options.device = optarg;
 			break;
 		case 'l':
-		case 4:
-			printf("Log Name: %s\n", optarg);
+		case log_filename:
 			prog_options.output_filename = optarg;
 			break;
 		case 'v':
-		case 5:
-			printf("Debug Level: %d\n", atoi(optarg));
+		case debug:
 			prog_options.debug_lvl = atoi(optarg);
-		case 6:
+		case inside_temp_text:
 			prog_options.in_temp_txt = optarg;
 			break;
-		case 7:
+		case inside_temp_suffix_text:
+			prog_options.in_temp_suffix_txt = optarg;
+			break;
+		case outside_temp_text:
 			prog_options.out_temp_txt = optarg;
 			break;
-		case 8:
+		case outside_temp_suffix_text:
+			prog_options.out_temp_suffix_txt = optarg;
+			break;
+		case humidity_text:
 			prog_options.humidity_txt = optarg;
 			break;
-		case 9:
+		case humidity_suffix_text:
+			prog_options.humidity_suffix_txt = optarg;
+			break;
+		case pressure_text:
 			prog_options.pressure_txt = optarg;
 			break;
-		case 10:
+		case pressure_suffix_text:
+			prog_options.pressure_suffix_txt = optarg;
+			break;
+		case rain_text:
 			prog_options.rain_txt = optarg;
 			break;
-		case 13:
+		case rain_suffix_text:
+			prog_options.rain_suffix_txt = optarg;
+			break;
+		case date_text:
+			prog_options.date_txt = optarg;
+			break;
+		case date_suffix_text:
+			prog_options.date_suffix_txt = optarg;
+			break;
+		case time_text:
+			prog_options.time_txt = optarg;
+			break;
+		case time_suffix_text:
+			prog_options.time_suffix_txt = optarg;
+			break;
+		case max_text:
+			prog_options.max_txt = optarg;
+			break;
+		case min_text:
+			prog_options.min_txt = optarg;
+			break;
+		case current_text:
+			prog_options.current_txt = optarg;
+			break;
+		case unix_path:
 			prog_options.unix_path = optarg;
 			break;
-		case 14:
+		case foreground:
 			prog_options.foreground = 1;
 			break;
-		case 15:
+		case fuzzy:
 			prog_options.fuzzy = 1;
 			break;
+		case fuzzy_rate:
+			prog_options.fuzzy_rate = atoi(optarg);
+			break;
 		case '?':
-printf("ws9xxd - Weather Station Daemon for Bios/Thermor 953\n");
+		case help:
+printf("ws9xxd - Weather Station Daemon for Bios/Thermor 9xx Series\n");
 printf("Usage:\n");
 printf("\tws9xxd [options]\n");
 printf("Options:\n");
@@ -192,15 +319,58 @@ printf("\t--inside-temp-adj\n");
 printf("\t--outside-temp-adj\n");
 printf("\t--pressure-adj\n");
 printf("\t--device-name\n");
-printf("\t--log-name\n");
+printf("\t\tWeather station device.\n");
+printf("\t\tDefault: %s\n", prog_options.device);
+printf("\t--log-filename\n");
+printf("\t--debug\n");
+printf("\t--inside-temp-text\n");
+printf("\t--inside-temp-suffix-text\n");
+printf("\t--outside-temp-text\n");
+printf("\t--outside-temp-suffix-text\n");
+printf("\t--humidity-text\n");
+printf("\t--humidity-suffix-text\n");
+printf("\t--pressure-text\n");
+printf("\t--pressure-suffix-text\n");
+printf("\t--rain-text\n");
+printf("\t--rain-suffix-text\n");
+printf("\t--date-text\n");
+printf("\t--date-suffix-text\n");
+printf("\t--time-text\n");
+printf("\t--time-suffix-text\n");
+printf("\t--max-text\n");
+printf("\t\tText to display for maximum reading.\n");
+printf("\t\tDefault: %s\n", prog_options.max_txt);
+printf("\t--min-text\n");
+printf("\t\tText to display for minimum reading.\n");
+printf("\t\tDefault: %s\n", prog_options.min_txt);
+printf("\t--current-text\n");
+printf("\t\tText to display for current reading.\n");
+printf("\t\tDefault: %s\n", prog_options.current_txt);
+printf("\t--unix-path\n");
+printf("\t\tName for Unix domain socket.\n");
+printf("\t\tDefault: %s\n", prog_options.unix_path);
+printf("\t--foreground\n");
+printf("\t\tRun program in foreground (don't run as a server) for testing\n");
+printf("\t\t(Always runs in foreground for now.)\n");
+printf("\t--fuzzy\n");
+printf("\t\tGenerate weather station data using random number generator.\n");
+printf("\t\tCauses strange data, but useful for testing.\n");
+printf("\t--fuzzy-rate\n");
+printf("\t\tRate at which to randomly generate weather station events.\n");
+printf("\t\tDefault: 1 second.\n");
 			return -1;
 			break;
 		}
 	}
 
-if (prog_options.output_filename != NULL)
+if (prog_options.foreground && strlen(prog_options.output_filename) == 0)
 	{
-	printf("setting output file: %s\n", prog_options.output_filename);
+	printf("Running in foreground, logging to screen.\n");
+	prog_options.output_fs = stdout;
+	}
+else
+	{
+	/* Program running in background - log to file */
 	prog_options.output_fs = fopen(prog_options.output_filename,
 		"w");
 	if (prog_options.output_fs == NULL)
@@ -335,12 +505,17 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
+
 void
 sigexit(int signal)
 {
-printf("Signal\n");
 
-(*dev_options.ws_close)(fd);
+/* FIXME: Code needs cleanup here.  Some of the shutdown functions are
+ * correct, but could be restructured, and more need to be called,
+ * such as closing all the client connections
+ */
+
+(*dev_options.ws_close)(usb_device_fd);
 
 close_local_listener();
 unlink(prog_options.unix_path);
@@ -360,30 +535,39 @@ int ret;
 ret = set_prog_options(argc, argv);
 if (ret)
 	{
-	fprintf(stderr, "Failed to set program options\n");
+	fprintf(prog_options.output_fs, "Failed to set program options\n");
 	return 1;
 	}
 
 ret = set_dev_options();
 if (ret)
 	{
-	fprintf(stderr, "Failed to set device options\n");
+	fprintf(prog_options.output_fs, "Failed to set device options\n");
 	return 1;
 	}
 
 ret = set_data_handlers();
 
-fd = (*dev_options.ws_open)(prog_options.device);
-if (fd < 0)
+if (prog_options.foreground == 0)
 	{
-	fprintf(stderr, "Failed to open device\n");
+	if (daemonize())
+		{
+		return 1;
+		}
+	}
+
+usb_device_fd = (*dev_options.ws_open)(prog_options.device);
+if (usb_device_fd < 0)
+	{
+	fprintf(prog_options.output_fs, "Failed to open device %s\n",
+		prog_options.device);
 	return 1;
 	}
 
-ret = (*dev_options.ws_start)(fd);
+ret = (*dev_options.ws_start)(usb_device_fd);
 if (ret)
 	{
-	fprintf(stderr, "Failed to initialize device\n");
+	fprintf(prog_options.output_fs, "Failed to initialize device\n");
 	return 1;
 	}
 
@@ -401,7 +585,7 @@ ws_connection = xmalloc(sizeof (struct select_node));
 memset(ws_connection, 0, sizeof (struct select_node));
 
 wsd_init_fd(ws_connection,			/* struct */
-	fd,								/* file descriptor */
+	usb_device_fd,					/* file descriptor */
 	WSD_FD_READ | WSD_FD_EXCEPT,	/* events */
 	wsd_connection_cb,				/* callback */
 	0								/* no broadcasts */
@@ -419,13 +603,13 @@ while (1)
 	{
 	if (prog_options.fuzzy)
 		{
-		sleep(1);
+		sleep(prog_options.fuzzy_rate);
 		}
 
 	wsd_selector();
 	}
 
-(*dev_options.ws_close)(fd);
+(*dev_options.ws_close)(usb_device_fd);
 
 return 0;
 }

@@ -39,6 +39,7 @@ struct ws_prog_options
 
 	int foreground;
 	int fuzzy;
+	int fuzzy_rate;
 
 	char *output_filename;
 	FILE *output_fs;
@@ -59,12 +60,19 @@ struct ws_prog_options
 	char *data_prefix;
 
 	char *time_txt;
+	char *time_suffix_txt;
 	char *date_txt;
+	char *date_suffix_txt;
 	char *in_temp_txt;
+	char *in_temp_suffix_txt;
 	char *out_temp_txt;
+	char *out_temp_suffix_txt;
 	char *rain_txt;
+	char *rain_suffix_txt;
 	char *humidity_txt;
+	char *humidity_suffix_txt;
 	char *pressure_txt;
+	char *pressure_suffix_txt;
 	char *wind_dir_txt;
 	char *wind_speed_txt;
 
