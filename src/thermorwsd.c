@@ -484,6 +484,9 @@ else
 		"w");
 	if (prog_options.output_fs == NULL)
 		{
+		perror("fopen");
+		fprintf(stderr, "Could not open log file %s\n",
+			prog_options.output_filename);
 		return -1;
 		}
 	
