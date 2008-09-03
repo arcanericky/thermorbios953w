@@ -23,8 +23,8 @@
 #define DATA_TYPE_WIND_SPEED	0x16
 #define DATA_TYPE_WIND_GUST		0x17
 #define DATA_TYPE_HUMIDITY		0x18
-#define DATA_TYPE_FORECAST		0x19	/* not used yet */
-#define DATA_TYPE_TREND			0x1a	/* not used yet */
+#define DATA_TYPE_FORECAST		0x19
+#define DATA_TYPE_TREND			0x1a
 #define DATA_TYPE_MAX			0x1c
 
 /* Data Categories */
