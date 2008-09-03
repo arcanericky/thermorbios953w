@@ -22,7 +22,9 @@
 #include <stdlib.h>
 #endif
 
+#ifdef HAVE_STDIO_H
 #include <stdio.h>
+#endif
 
 #include "list.h"
 #include "select.h"
@@ -156,7 +158,10 @@ list_for_each_entry_safe(cur, tmp, &select_fds->list, list)
 		debug(5, "Executing callback for %d\n", cur->fd);
 		ret = (*cur->callback)(cur->fd, eventtypes, cur->data);
 
-		/* FIXME: Do something with ret? */
+		if (ret != 0)
+			{
+			return ret;
+			}
 		}
 	}
 
@@ -242,9 +247,9 @@ if (ret <= 0)
 
 debug(5, "After select\n");
 
-dispatch_select_events(&select_fds, &readfds, &writefds, &exceptfds);
+ret = dispatch_select_events(&select_fds, &readfds, &writefds, &exceptfds);
 
-return 0;
+return ret;
 }
 
 /*---------------------------------------------------------*/

@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(ws9xxd, 0.0.1, BUG-REPORT-ADDRESS)
+AC_INIT(ws9xxd, 0.0.2, BUG-REPORT-ADDRESS)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
 
@@ -15,7 +15,7 @@ AC_PROG_CC
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([fcntl.h memory.h stdlib.h sys/ioctl.h unistd.h])
+AC_CHECK_HEADERS([fcntl.h memory.h stdlib.h sys/ioctl.h unistd.h signal.h getopt.h stdarg.h stdio.h ctype.h sys/stat.h sys/un.h sys/types.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_TIME

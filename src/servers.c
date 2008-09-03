@@ -10,13 +10,26 @@
 #include <sys/socket.h>
 #endif
 
+#ifdef HAVE_SYS_UN_H
 #include <sys/un.h>
+#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
+#ifdef HAVE_STDIO_H
 #include <stdio.h>
+#endif
+
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+
 #include "list.h"
 #include "select.h"
 #include "common.h"
@@ -123,6 +136,7 @@ init_local_listener()
 {
 struct sockaddr_un sun;
 struct select_node *new_node;
+mode_t old_umask;
 int fd;
 int ret;
 
@@ -140,14 +154,17 @@ memcpy(sun.sun_path, prog_options.unix_path,
 	strlen(prog_options.unix_path) + 1);
 unlink(sun.sun_path);
 
+old_umask = umask(0111);
 ret = bind(fd, (struct sockaddr *) &sun, sizeof(sun));
 if (ret < 0)
 	{
 	perror("bind");
+	umask(old_umask);
 	close(fd);
 	return -1;
 	}
 
+umask(old_umask);
 ret = listen(fd, 5);
 if (ret < 0)
 	{

@@ -2,7 +2,9 @@
 #include <config.h>
 #endif
 
+#ifdef HAVE_STDARG_H
 #include <stdarg.h>
+#endif
 
 #include "thermorwsd.h"
 #include "debug.h"

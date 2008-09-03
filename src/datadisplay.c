@@ -10,7 +10,9 @@
 #include <stdlib.h>
 #endif
 
+#ifdef HAVE_STDARG_H
 #include <stdarg.h>
+#endif
 
 #include "thermorwsd.h"
 #include "common.h"
@@ -52,6 +54,7 @@ return;
 char
 *hlc(int x)
 {
+/* FIXME: Horrible fixed size array here */
 static char text[15];
 char *format = "%s%s";
 
@@ -85,6 +88,17 @@ display_date(int datatype, int *data)
 output_data("%s%s%2.2d/%2.2d/%2.2d\n",
 	prog_options.data_prefix, prog_options.date_txt, data[1],
 	data[2], data[0]);
+
+return (0);
+}
+
+/*-----------------------------------------------------------------*/
+int
+display_time(int datatype, int *data)
+{
+output_data("%s%s%2.2d:%2.2d:%2.2d\n",
+	prog_options.data_prefix, prog_options.time_txt, data[0],
+	data[1], data[2]);
 
 return (0);
 }
@@ -175,8 +189,8 @@ if ((data | 0xFF00) == data)
 	}
 else
 	{
-	output_data("%s%s%d.%d%s\n",
-		hlc(datatype), prog_options.rain_txt, TENTHS(data),
+	output_data("%s%s%d%s\n",
+		hlc(datatype), prog_options.rain_txt, data,
 		prog_options.rain_suffix_txt);
 	}
 
@@ -185,31 +199,20 @@ return 0;
 
 /*-----------------------------------------------------------------*/
 int
-display_time(int datatype, int *data)
+display_windspeed(int datatype, int data)
 {
-output_data("%s%s%2.2d:%2.2d:%2.2d\n",
-	prog_options.data_prefix, prog_options.time_txt, data[0],
-	data[1], data[2]);
+output_data("%s%s%d.%d\n",
+	hlc(datatype), prog_options.wind_speed_txt, TENTHS(data));
 
 return (0);
 }
 
 /*-----------------------------------------------------------------*/
 int
-display_wind1(int datatype, int data)
+display_windgust(int datatype, int data)
 {
-output_data("%sWind1: %d\n",
-	hlc(datatype), data);
-
-return (0);
-}
-
-/*-----------------------------------------------------------------*/
-int
-display_wind2(int datatype, int data)
-{
-output_data("%sWind2: %d\n",
-	hlc(datatype), data);
+output_data("%s%s%d.%d\n",
+	hlc(datatype), prog_options.wind_gust_txt, TENTHS(data));
 
 return (0);
 }
@@ -226,9 +229,50 @@ if (data == 0x10)
 	}
 else
 	{
-	output_data("%s%s%d.%d\n",
-		hlc(datatype), prog_options.wind_dir_txt, TENTHS(data));
+	output_data("%s%s%d\n",
+		hlc(datatype), prog_options.wind_dir_txt, data);
 	}
+
+return 0;
+}
+
+/*-----------------------------------------------------------------*/
+int
+display_forecast(int datatype, int data)
+{
+char *forecast;
+
+switch (data)
+	{
+	case 0:
+		forecast = "Sunny";
+		break;
+	case 1:
+		forecast = "Partly cloudy";
+		break;
+	case 2:
+		forecast = "Cloudy";
+		break;
+	case 3:
+		forecast = "Rainy";
+		break;
+	default:
+		forecast = "-";
+		break;
+	}
+
+output_data("%s%s%s\n",
+	hlc(datatype), prog_options.forecast_txt, forecast);
+
+return 0;
+}
+
+/*-----------------------------------------------------------------*/
+int
+display_trend(int datatype, int *data)
+{
+output_data("%s%s%d %d\n",
+	hlc(datatype), prog_options.trend_txt, *(data), *(data + 1));
 
 return 0;
 }

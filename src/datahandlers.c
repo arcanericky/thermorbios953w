@@ -2,6 +2,10 @@
 #include <config.h>
 #endif
 
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
 #include "thermorwsd.h"
 #include "common.h"
 
@@ -50,7 +54,7 @@ if (data[3] != DATA_TYPE_DATE)
 
 DISPLAY_HANDLER(data[3], data[7], &data[4]);
 
-return (0);
+return 0;
 }
 
 /*-----------------------------------------------------------------*/
@@ -69,7 +73,7 @@ if (datatype != DATA_TYPE_HUMIDITY)
 
 DISPLAY_HANDLER(datatype, data[7], data[5]);
 
-return (0);
+return 0;
 }
 
 /*-----------------------------------------------------------------*/
@@ -97,7 +101,7 @@ if ((temperature | 0xFF00) != temperature)
 
 DISPLAY_HANDLER(datatype, data[7], temperature);
 
-return (0);
+return 0;
 }
 
 /*-----------------------------------------------------------------*/
@@ -125,7 +129,7 @@ if ((temperature | 0xFF00) != temperature)
 
 DISPLAY_HANDLER(datatype, data[7], temperature);
 
-return (0);
+return 0;
 }
 
 /*-----------------------------------------------------------------*/
@@ -149,7 +153,7 @@ pressure = pressure + prog_options.pressure_adj;
 
 DISPLAY_HANDLER(datatype, data[7], pressure);
 
-return (0);
+return 0;
 }
 
 /*-----------------------------------------------------------------*/
@@ -168,10 +172,12 @@ if (datatype != DATA_TYPE_RAIN)
 	}
 
 rain = (data[5] << 8) + data[6];
+#if 0
 rain = rain * 5;
+#endif
 DISPLAY_HANDLER(datatype, data[7], rain);
 
-return (0);
+return 0;
 }
 
 /*-----------------------------------------------------------------*/
@@ -187,45 +193,51 @@ if (data[3] != DATA_TYPE_TIME)
 
 DISPLAY_HANDLER(data[3], data[7], &data[4]);
 
-return (0);
+return 0;
 }
 
 /*-----------------------------------------------------------------*/
 int
-dh_wind1(int *data)
+dh_windspeed(int *data)
 {
 int datatype;
+short speed;
 
 log_data(data);
 
 datatype = data[3];
-if (datatype != DATA_TYPE_WIND_1)
+if (datatype != DATA_TYPE_WIND_SPEED)
 	{
 	/* FIXME: Warning here */
 	}
 
-DISPLAY_HANDLER(datatype, data[7], data[6]);
+speed = (data[5] << 8) + data[6];
 
-return (0);
+DISPLAY_HANDLER(datatype, data[7], speed);
+
+return 0;
 }
 
 /*-----------------------------------------------------------------*/
 int
-dh_wind2(int *data)
+dh_windgust(int *data)
 {
 int datatype;
+short gust;
 
 log_data(data);
 
 datatype = data[3];
-if (datatype != DATA_TYPE_WIND_2)
+if (datatype != DATA_TYPE_WIND_GUST)
 	{
 	/* FIXME: Warning here */
 	}
 
-DISPLAY_HANDLER(datatype, data[7], data[6]);
+gust = (data[5] << 8) + data[6];
 
-return (0);
+DISPLAY_HANDLER(datatype, data[7], gust);
+
+return 0;
 }
 
 /*-----------------------------------------------------------------*/
@@ -244,10 +256,62 @@ if (datatype != DATA_TYPE_WIND_DIR)
 	}
 
 wind_direction = data[5];
+wind_direction = abs(wind_direction);
+
+/* Needed for --fuzzy option so it falls within bounds */
 wind_direction = wind_direction % 16;
-wind_direction = wind_direction * 225;
+
+switch(wind_direction)
+	{
+	case  0x0: wind_direction = 157; break;
+	case  0x1: wind_direction = 225; break;
+	case  0x2: wind_direction = 180; break;
+	case  0x3: wind_direction = 202; break;
+	case  0x4: wind_direction = 135; break;
+	case  0x5: wind_direction = 247; break;
+	case  0x6: wind_direction = 112; break;
+	case  0x7: wind_direction = 270; break;
+	case  0x8: wind_direction =  45; break;
+	case  0x9: wind_direction = 337; break;
+	case  0xa: wind_direction =  22; break;
+	case  0xb: wind_direction =   0; break;
+	case  0xc: wind_direction =  67; break;
+	case  0xd: wind_direction = 315; break;
+	case  0xe: wind_direction =  90; break;
+	case  0xf: wind_direction = 292; break;
+	case 0x10: /* sensor not connected */ break;
+	}
 
 DISPLAY_HANDLER(datatype, data[7], wind_direction);
 
-return (0);
+return 0;
+}
+
+/*-----------------------------------------------------------------*/
+int
+dh_forecast(int *data)
+{
+int datatype;
+int forecast;
+
+datatype = data[3];
+
+forecast = data[5];
+
+DISPLAY_HANDLER(datatype, data[7], forecast);
+
+return 0;
+}
+
+/*-----------------------------------------------------------------*/
+int
+dh_trend(int *data)
+{
+int datatype;
+
+datatype = data[3];
+
+DISPLAY_HANDLER(datatype, data[7], &data[4]);
+
+return 0;
 }

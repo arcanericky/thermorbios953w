@@ -1,11 +1,13 @@
 #ifndef _THERMOSWSD_H
 #define _THERMOSWSD_H
 
+#ifdef HAVE_STDIO_H
 #include <stdio.h>
+#endif
 
 #define RAW_DATA			1
 
-#define NUM_DATA				8
+#define NUM_DATA			8
 
 #define UNIX_PATH	"/tmp/wsd"
 
@@ -14,12 +16,15 @@
 #define DATA_TYPE_TIME			0x03
 #define DATA_TYPE_PRESSURE		0x10
 #define DATA_TYPE_RAIN			0x11
+#define DATA_TYPE_WIND_CHILL	0x12	/* not used yet */
 #define DATA_TYPE_OUT_TEMP		0x13
 #define DATA_TYPE_IN_TEMP		0x14
 #define DATA_TYPE_WIND_DIR		0x15
-#define DATA_TYPE_WIND_1		0x16
-#define DATA_TYPE_WIND_2		0x17
+#define DATA_TYPE_WIND_SPEED	0x16
+#define DATA_TYPE_WIND_GUST		0x17
 #define DATA_TYPE_HUMIDITY		0x18
+#define DATA_TYPE_FORECAST		0x19	/* not used yet */
+#define DATA_TYPE_TREND			0x1a	/* not used yet */
 #define DATA_TYPE_MAX			0x1c
 
 /* Data Categories */
@@ -39,7 +44,7 @@ struct ws_prog_options
 
 	int foreground;
 	int fuzzy;
-	int fuzzy_rate;
+	int playback_rate;
 
 	char *output_filename;
 	FILE *output_fs;
@@ -76,8 +81,18 @@ struct ws_prog_options
 	char *humidity_suffix_txt;
 	char *pressure_txt;
 	char *pressure_suffix_txt;
+
 	char *wind_dir_txt;
+	char *wind_dir_suffix_txt;
+
 	char *wind_speed_txt;
+	char *wind_speed_suffix_txt;
+
+	char *wind_gust_txt;
+	char *wind_gust_suffix_txt;
+
+	char *forecast_txt;
+	char *trend_txt;
 
 	char *no_reading_txt;
 	};

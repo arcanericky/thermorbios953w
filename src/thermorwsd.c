@@ -18,9 +18,13 @@
 #include <unistd.h>
 #endif
 
+#ifdef HAVE_SIGNAL_H
 #include <signal.h>
+#endif
 
+#ifdef HAVE_GETOPT_H
 #include <getopt.h>
+#endif
 
 #include "thermorwsd.h"
 #include "bw953.h"
@@ -100,6 +104,11 @@ enum options
 	log_filename,
 	debug,
 
+	date_text,
+	date_suffix_text,
+	time_text,
+	time_suffix_text,
+
 	inside_temp_text,
 	inside_temp_suffix_text,
 	outside_temp_text,
@@ -110,13 +119,20 @@ enum options
 	pressure_suffix_text,
 	rain_text,
 	rain_suffix_text,
-	date_text,
-	date_suffix_text,
-	time_text,
-	time_suffix_text,
+
+	wind_dir_text,
+	wind_dir_suffix_text,
+	wind_speed_text,
+	wind_speed_suffix_text,
+	wind_gust_text,
+	wind_gust_suffix_text,
+
+	forecast_text,
+	trend_text,
 
 	max_text,
 	min_text,
+
 	current_text,
 	unix_path,
 
@@ -125,7 +141,7 @@ enum options
 
 	foreground,
 	fuzzy,
-	fuzzy_rate,
+	playback_rate,
 	help
 	};
 
@@ -146,11 +162,26 @@ static struct option long_options[] = {
 								required_argument, 0,
 												outside_temp_suffix_text },
 	{ "humidity-text",			required_argument, 0, humidity_text },
-	{ "humidity-suffix-text",	required_argument, 0, humidity_suffix_text },
+	{ "humidity-suffix-text",	required_argument, 0,
+												humidity_suffix_text },
 	{ "pressure-text",			required_argument, 0, pressure_text },
-	{ "pressure-suffix-text",	required_argument, 0, pressure_suffix_text },
+	{ "pressure-suffix-text",	required_argument, 0,
+												pressure_suffix_text },
 	{ "rain-text",				required_argument, 0, rain_text },
 	{ "rain-suffix-text",		required_argument, 0, rain_suffix_text },
+	{ "wind-dir-text",			required_argument, 0, wind_dir_text },
+	{ "wind-dir-suffix-text",	required_argument, 0,
+												wind_dir_suffix_text },
+	{ "wind-speed-text",		required_argument, 0, wind_speed_text },
+	{ "wind-speed-suffix-text",	required_argument, 0,
+												wind_speed_suffix_text },
+	{ "wind-gust-text",			required_argument, 0, wind_gust_text },
+	{ "wind-gust-suffix-text",	required_argument, 0,
+												wind_gust_suffix_text },
+
+	{ "forecast-text",			required_argument, 0, forecast_text },
+	{ "trend-text",				required_argument, 0, trend_text },
+
 	{ "date-text",				required_argument, 0, date_text },
 	{ "date-suffix-text",		required_argument, 0, date_suffix_text },
 	{ "time-text",				required_argument, 0, time_text },
@@ -165,7 +196,7 @@ static struct option long_options[] = {
 	{ "play-data-file",			required_argument, 0, play_data_file },
 	{ "foreground",				no_argument,       0, foreground },
 	{ "fuzzy",					no_argument,       0, fuzzy },
-	{ "fuzzy-rate",				required_argument, 0, fuzzy_rate },
+	{ "playback-rate",			required_argument, 0, playback_rate },
 	{ "help",					no_argument,       0, help },
 	{ 0, 0, 0, 0 }
 	};
@@ -200,18 +231,26 @@ prog_options.in_temp_suffix_txt = " C";
 prog_options.out_temp_txt = "Outside Temperature: ";
 prog_options.out_temp_suffix_txt = " C";
 prog_options.rain_txt = "Rain: ";
-prog_options.rain_suffix_txt = " ml";
+prog_options.rain_suffix_txt = " clicks";
 prog_options.humidity_txt = "Humidity: ";
 prog_options.humidity_suffix_txt = " %";
 prog_options.pressure_txt = "Pressure: ";
 prog_options.pressure_suffix_txt = " mb";
-prog_options.wind_dir_txt = "Wind Direction: ";
-prog_options.wind_speed_txt = "Wind Speed: ";
 
-prog_options.no_reading_txt = "No Reading";
+prog_options.wind_dir_txt = "Wind Direction: ";
+prog_options.wind_dir_suffix_txt = "";
+prog_options.wind_speed_txt = "Wind Speed: ";
+prog_options.wind_speed_suffix_txt = "";
+prog_options.wind_gust_txt = "Wind Gust: ";
+prog_options.wind_gust_suffix_txt = "";
+
+prog_options.forecast_txt = "Forecast: ";
+prog_options.trend_txt = "Trend: ";
+
+prog_options.no_reading_txt = "-";
 prog_options.foreground = 0;
 prog_options.fuzzy = 0;
-prog_options.fuzzy_rate = 1;
+prog_options.playback_rate = 1;
 
 prog_options.play_data_file = NULL;
 prog_options.record_data_file = NULL;
@@ -285,6 +324,30 @@ while (1)
 		case rain_suffix_text:
 			prog_options.rain_suffix_txt = optarg;
 			break;
+		case wind_dir_text:
+			prog_options.wind_dir_txt = optarg;
+			break;
+		case wind_dir_suffix_text:
+			prog_options.wind_dir_suffix_txt = optarg;
+			break;
+		case wind_speed_text:
+			prog_options.wind_speed_txt = optarg;
+			break;
+		case wind_speed_suffix_text:
+			prog_options.wind_speed_suffix_txt = optarg;
+			break;
+		case wind_gust_text:
+			prog_options.wind_gust_txt = optarg;
+			break;
+		case wind_gust_suffix_text:
+			prog_options.wind_gust_suffix_txt = optarg;
+			break;
+		case forecast_text:
+			prog_options.forecast_txt = optarg;
+			break;
+		case trend_text:
+			prog_options.trend_txt = optarg;
+			break;
 		case date_text:
 			prog_options.date_txt = optarg;
 			break;
@@ -315,8 +378,8 @@ while (1)
 		case fuzzy:
 			prog_options.fuzzy = 1;
 			break;
-		case fuzzy_rate:
-			prog_options.fuzzy_rate = atoi(optarg);
+		case playback_rate:
+			prog_options.playback_rate = atoi(optarg);
 			break;
 		case record_data_file:
 			prog_options.record_data_file = optarg;
@@ -329,51 +392,80 @@ while (1)
 printf("ws9xxd - Weather Station Daemon for Bios/Thermor 9xx Series\n");
 printf("Usage:\n");
 printf("\tws9xxd [options]\n");
+printf("\n");
 printf("Options:\n");
-printf("\t--inside-temp-adj\n");
-printf("\t--outside-temp-adj\n");
-printf("\t--pressure-adj\n");
 printf("\t--device-name\n");
 printf("\t\tWeather station device.\n");
 printf("\t\tDefault: %s\n", prog_options.device);
+printf("\t\t\tUbuntu could be  : /dev/usb/hiddev0\n");
+printf("\t\t\tMandriva could be: /dev/hiddev0\n");
+printf("\t--unix-path\n");
+printf("\t\tName for Unix domain socket.\n");
+printf("\t\tDefault: %s\n", prog_options.unix_path);
 printf("\t--log-filename\n");
-printf("\t--record-data-file\n");
-printf("\t--play-data-file\n");
-printf("\t--debug\n");
-printf("\t--inside-temp-text\n");
-printf("\t--inside-temp-suffix-text\n");
-printf("\t--outside-temp-text\n");
-printf("\t--outside-temp-suffix-text\n");
-printf("\t--humidity-text\n");
-printf("\t--humidity-suffix-text\n");
-printf("\t--pressure-text\n");
-printf("\t--pressure-suffix-text\n");
-printf("\t--rain-text\n");
-printf("\t--rain-suffix-text\n");
+printf("\n");
+printf("Reading Adjustment Options:\n");
+printf("\t--inside-temp-adj\n");
+printf("\t--outside-temp-adj\n");
+printf("\t--pressure-adj\n");
+printf("\n");
+printf("Text Output Options:\n");
 printf("\t--date-text\n");
+printf("\t\tDefault: %s\n", prog_options.date_txt);
 printf("\t--date-suffix-text\n");
 printf("\t--time-text\n");
+printf("\t\tDefault: %s\n", prog_options.time_txt);
 printf("\t--time-suffix-text\n");
+printf("\t--inside-temp-text\n");
+printf("\t\tDefault: %s\n", prog_options.in_temp_txt);
+printf("\t--inside-temp-suffix-text\n");
+printf("\t--outside-temp-text\n");
+printf("\t\tDefault: %s\n", prog_options.out_temp_txt);
+printf("\t--outside-temp-suffix-text\n");
+printf("\t--humidity-text\n");
+printf("\t\tDefault: %s\n", prog_options.humidity_txt);
+printf("\t--humidity-suffix-text\n");
+printf("\t--pressure-text\n");
+printf("\t\tDefault: %s\n", prog_options.pressure_txt);
+printf("\t--pressure-suffix-text\n");
+printf("\t--rain-text\n");
+printf("\t\tDefault: %s\n", prog_options.rain_txt);
+printf("\t--rain-suffix-text\n");
+printf("\t--wind-dir-text\n");
+printf("\t\tDefault: %s\n", prog_options.wind_dir_txt);
+printf("\t--wind-dir-suffix-text\n");
+printf("\t--wind-speed-text\n");
+printf("\t\tDefault: %s\n", prog_options.wind_speed_txt);
+printf("\t--wind-speed-suffix-text\n");
+printf("\t--wind-gust-text\n");
+printf("\t\tDefault: %s\n", prog_options.wind_gust_txt);
+printf("\t--wind-gust-suffix-text\n");
+printf("\t--forecast-text\n");
+printf("\t\tDefault: %s\n", prog_options.forecast_txt);
+printf("\t--trend-text\n");
+printf("\t\tDefault: %s\n", prog_options.trend_txt);
+printf("\t--current-text\n");
+printf("\t\tText to display for current reading.\n");
+printf("\t\tDefault: %s\n", prog_options.current_txt);
 printf("\t--max-text\n");
 printf("\t\tText to display for maximum reading.\n");
 printf("\t\tDefault: %s\n", prog_options.max_txt);
 printf("\t--min-text\n");
 printf("\t\tText to display for minimum reading.\n");
 printf("\t\tDefault: %s\n", prog_options.min_txt);
-printf("\t--current-text\n");
-printf("\t\tText to display for current reading.\n");
-printf("\t\tDefault: %s\n", prog_options.current_txt);
-printf("\t--unix-path\n");
-printf("\t\tName for Unix domain socket.\n");
-printf("\t\tDefault: %s\n", prog_options.unix_path);
+printf("\n");
+
+printf("Debugging Options:\n");
+printf("\t--record-data-file\n");
+printf("\t--play-data-file\n");
+printf("\t--debug\n");
 printf("\t--foreground\n");
 printf("\t\tRun program in foreground (don't run as a server) for testing\n");
-printf("\t\t(Always runs in foreground for now.)\n");
 printf("\t--fuzzy\n");
 printf("\t\tGenerate weather station data using random number generator.\n");
 printf("\t\tCauses strange data, but useful for testing.\n");
-printf("\t--fuzzy-rate\n");
-printf("\t\tRate at which to randomly generate weather station events.\n");
+printf("\t--playback-rate\n");
+printf("\t\tRate at which to play back weather station events.\n");
 printf("\t\tDefault: 1 second.\n");
 			return -1;
 			break;
@@ -405,9 +497,11 @@ proc_data(int *data)
 {
 unsigned int data_type;
 
+/* This is the only place where --fuzzy and --play-data-file are */
+/* different and --fuzzy needs to be checked separately */
 if (prog_options.fuzzy)
 	{
-	data[3] = abs(data[3]) % 0x19;
+	data[3] = abs(data[3]) % (DATA_TYPE_MAX - 1);
 	data[7] = (abs(data[7]) % 0x03) + 1;
 	}
 
@@ -432,7 +526,7 @@ generic_data_handler(int *data)
 char text_time[20];
 int x;
 
-if (prog_options.debug_lvl < 4)
+if (prog_options.fuzzy)
 	{
 	return 0;
 	}
@@ -487,14 +581,20 @@ data_handlers[DATA_TYPE_IN_TEMP].display_handler = display_intemp;
 data_handlers[DATA_TYPE_WIND_DIR].data_handler = dh_winddir;
 data_handlers[DATA_TYPE_WIND_DIR].display_handler = display_winddir;
 
-data_handlers[DATA_TYPE_WIND_1].data_handler = dh_wind1;
-data_handlers[DATA_TYPE_WIND_1].display_handler = display_wind1;
+data_handlers[DATA_TYPE_WIND_SPEED].data_handler = dh_windspeed;
+data_handlers[DATA_TYPE_WIND_SPEED].display_handler = display_windspeed;
 
-data_handlers[DATA_TYPE_WIND_2].data_handler = dh_wind2;
-data_handlers[DATA_TYPE_WIND_2].display_handler = display_wind2;
+data_handlers[DATA_TYPE_WIND_GUST].data_handler = dh_windgust;
+data_handlers[DATA_TYPE_WIND_GUST].display_handler = display_windgust;
 
 data_handlers[DATA_TYPE_HUMIDITY].data_handler = dh_humidity;
 data_handlers[DATA_TYPE_HUMIDITY].display_handler = display_humidity;
+
+data_handlers[DATA_TYPE_FORECAST].data_handler = dh_forecast;
+data_handlers[DATA_TYPE_FORECAST].display_handler = display_forecast;
+
+data_handlers[DATA_TYPE_TREND].data_handler = dh_trend;
+data_handlers[DATA_TYPE_TREND].display_handler = display_trend;
 
 return 0;
 }
@@ -509,7 +609,7 @@ int ret;
 ret = (*dev_options.ws_read)(fd, data);
 if (ret < 0)
 	{
-	return 0;
+	return 1;
 	}
 
 ret = proc_data(data);
@@ -573,11 +673,23 @@ if (prog_options.foreground == 0)
 		}
 	}
 
+if (prog_options.fuzzy)
+	{
+	prog_options.play_data_file = "/dev/urandom";
+	}
+
+if (prog_options.play_data_file)
+	{
+	prog_options.device = prog_options.play_data_file;
+	}
+
 usb_device_fd = (*dev_options.ws_open)(prog_options.device);
 if (usb_device_fd < 0)
 	{
 	fprintf(prog_options.output_fs, "Failed to open device %s\n",
 		prog_options.device);
+	fprintf(prog_options.output_fs,
+		"Check for file existence and permissions.\n");
 	return 1;
 	}
 
@@ -618,12 +730,16 @@ init_local_listener();
 
 while (1)
 	{
-	if (prog_options.fuzzy)
+	if (prog_options.play_data_file != NULL)
 		{
-		sleep(prog_options.fuzzy_rate);
+		sleep(prog_options.playback_rate);
 		}
 
-	wsd_selector();
+	ret = wsd_selector();
+	if (ret != 0)
+		{
+		break;
+		}
 	}
 
 (*dev_options.ws_close)(usb_device_fd);

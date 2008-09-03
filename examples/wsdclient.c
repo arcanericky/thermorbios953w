@@ -10,7 +10,9 @@
 #include <sys/socket.h>
 #endif
 
+#ifdef HAVE_SYS_UN_H
 #include <sys/un.h>
+#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -20,7 +22,9 @@
 #include <stdlib.h>
 #endif
 
+#ifdef HAVE_STDIO_H
 #include <stdio.h>
+#endif
 
 int
 main()

@@ -18,6 +18,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+
 #include "thermorwsd.h"
 #include "bw953.h"
 #include "common.h"
@@ -32,15 +36,6 @@ int
 bw953_open(char *filename)
 {
 int fd;
-
-if (prog_options.fuzzy)
-	{
-	filename = "/dev/urandom";
-	}
-else if (prog_options.play_data_file)
-	{
-	filename = prog_options.play_data_file;
-	}
 
 fd = open(filename, O_RDWR);
 if (fd == -1)
@@ -112,10 +107,12 @@ int
 bw953_stop(int fd)
 {
 /* FIXME: Send the stop message one day */
+#if 0
 char stop_msg1[] = {
 	0x00, 0x01, 0x16, 0x03,  0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
 	};
+#endif
 
 close(fd);
 
@@ -130,11 +127,6 @@ int ret;
 int x;
 struct hiddev_event event[NUM_DEVICE_EVENTS];
 
-if (prog_options.fuzzy)
-	{
-	ret = 0;
-	}
-
 ret = read(fd, &event, sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
 if (ret == -1)
 	{
@@ -144,14 +136,18 @@ if (ret == -1)
 
 datadump("REC", &event, ret);
 
-/* FIXME: Add error checking for recording of data here */
 if (prog_options.record_data_file != NULL)
 	{
 	int rec_fd;
 
-	rec_fd = open(prog_options.record_data_file, O_RDWR | O_APPEND | O_CREAT);
-	write(rec_fd, &event, ret);
-	close(rec_fd);
+	rec_fd = open(prog_options.record_data_file,
+		O_RDWR | O_APPEND | O_CREAT,
+		S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (rec_fd != -1)
+		{
+		write(rec_fd, &event, ret);
+		close(rec_fd);
+		}
 	}
 
 if (ret != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
