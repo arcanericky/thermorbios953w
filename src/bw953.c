@@ -37,6 +37,10 @@ if (prog_options.fuzzy)
 	{
 	filename = "/dev/urandom";
 	}
+else if (prog_options.play_data_file)
+	{
+	filename = prog_options.play_data_file;
+	}
 
 fd = open(filename, O_RDWR);
 if (fd == -1)
@@ -140,6 +144,16 @@ if (ret == -1)
 
 datadump("REC", &event, ret);
 
+/* FIXME: Add error checking for recording of data here */
+if (prog_options.record_data_file != NULL)
+	{
+	int rec_fd;
+
+	rec_fd = open(prog_options.record_data_file, O_RDWR | O_APPEND | O_CREAT);
+	write(rec_fd, &event, ret);
+	close(rec_fd);
+	}
+
 if (ret != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
 	{
 	fprintf(prog_options.output_fs, "Short read: %d\n", ret);	
@@ -188,7 +202,7 @@ for (i = 0; i < len; i++)
 	uref.values[i] = *(output + i);
 	}
 
-if (prog_options.fuzzy == 0)
+if (prog_options.fuzzy == 0 && prog_options.play_data_file == NULL)
 	{
 	ret = ioctl(fd, HIDIOCSUSAGES, &uref);
 	if (ret == -1)
@@ -203,7 +217,7 @@ rinfo.report_id = 0x00;
 
 rinfo.num_fields = 1;
 
-if (prog_options.fuzzy == 0)
+if (prog_options.fuzzy == 0 && prog_options.play_data_file == NULL)
 	{
 	ret = ioctl(fd, HIDIOCSREPORT, &rinfo);
 	if (ret == -1)

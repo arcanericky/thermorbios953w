@@ -44,6 +44,9 @@ struct ws_prog_options
 	char *output_filename;
 	FILE *output_fs;
 
+	char *record_data_file;
+	char *play_data_file;
+
 	int debug_lvl;
 
 	int out_temp_adj;

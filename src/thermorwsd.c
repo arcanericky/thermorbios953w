@@ -119,6 +119,10 @@ enum options
 	min_text,
 	current_text,
 	unix_path,
+
+	record_data_file,
+	play_data_file,
+
 	foreground,
 	fuzzy,
 	fuzzy_rate,
@@ -157,6 +161,8 @@ static struct option long_options[] = {
 	{ "current-text",			required_argument, 0, current_text },
 
 	{ "unix-path",				required_argument, 0, unix_path },
+	{ "record-data-file",		required_argument, 0, record_data_file },
+	{ "play-data-file",			required_argument, 0, play_data_file },
 	{ "foreground",				no_argument,       0, foreground },
 	{ "fuzzy",					no_argument,       0, fuzzy },
 	{ "fuzzy-rate",				required_argument, 0, fuzzy_rate },
@@ -179,9 +185,9 @@ prog_options.pressure_adj = 0;
 prog_options.unix_path = UNIX_PATH;
 
 prog_options.device = "/dev/hiddev0";
-prog_options.max_txt = "Maximum";
-prog_options.min_txt = "Minimum";
-prog_options.current_txt = "Current";
+prog_options.max_txt = "Maximum ";
+prog_options.min_txt = "Minimum ";
+prog_options.current_txt = "Current ";
 
 prog_options.data_prefix = "DATA: ";
 prog_options.time_txt = "Time: ";
@@ -206,6 +212,9 @@ prog_options.no_reading_txt = "No Reading";
 prog_options.foreground = 0;
 prog_options.fuzzy = 0;
 prog_options.fuzzy_rate = 1;
+
+prog_options.play_data_file = NULL;
+prog_options.record_data_file = NULL;
 
 while (1)
 	{
@@ -309,6 +318,12 @@ while (1)
 		case fuzzy_rate:
 			prog_options.fuzzy_rate = atoi(optarg);
 			break;
+		case record_data_file:
+			prog_options.record_data_file = optarg;
+			break;
+		case play_data_file:
+			prog_options.play_data_file = optarg;
+			break;
 		case '?':
 		case help:
 printf("ws9xxd - Weather Station Daemon for Bios/Thermor 9xx Series\n");
@@ -322,6 +337,8 @@ printf("\t--device-name\n");
 printf("\t\tWeather station device.\n");
 printf("\t\tDefault: %s\n", prog_options.device);
 printf("\t--log-filename\n");
+printf("\t--record-data-file\n");
+printf("\t--play-data-file\n");
 printf("\t--debug\n");
 printf("\t--inside-temp-text\n");
 printf("\t--inside-temp-suffix-text\n");
@@ -399,7 +416,7 @@ data_type = data[3];
 if ((data_type >= DATA_TYPE_MAX) ||
 	(data_handlers[data_type].data_handler == NULL))
 	{
-	printf("No data handler for %2.2x\n", data_type);
+	fprintf(prog_options.output_fs, "No data handler for %2.2x\n", data_type);
 	return 0;
 	}
 
