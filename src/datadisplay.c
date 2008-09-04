@@ -201,8 +201,17 @@ return 0;
 int
 display_windspeed(int datatype, int data)
 {
-output_data("%s%s%d.%d\n",
-	hlc(datatype), prog_options.wind_speed_txt, TENTHS(data));
+if ((data | 0xFFFF) == data)
+	{
+	output_data("%s%s%s\n",
+		hlc(datatype), prog_options.wind_speed_txt,
+		prog_options.no_reading_txt);
+	}
+else
+	{
+	output_data("%s%s%d.%d\n",
+		hlc(datatype), prog_options.wind_speed_txt, TENTHS(data));
+	}
 
 return (0);
 }
@@ -211,8 +220,17 @@ return (0);
 int
 display_windgust(int datatype, int data)
 {
-output_data("%s%s%d.%d\n",
-	hlc(datatype), prog_options.wind_gust_txt, TENTHS(data));
+if ((data | 0xFFFF) == data)
+	{
+	output_data("%s%s%s\n",
+		hlc(datatype), prog_options.wind_gust_txt,
+		prog_options.no_reading_txt);
+	}
+else
+	{
+	output_data("%s%s%d.%d\n",
+		hlc(datatype), prog_options.wind_gust_txt, TENTHS(data));
+	}
 
 return (0);
 }
