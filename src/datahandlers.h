@@ -13,5 +13,6 @@ int dh_windgust(int *);
 int dh_winddir(int *);
 int dh_forecast(int *);
 int dh_trend(int *);
+int dh_windchill(int *);
 
 #endif

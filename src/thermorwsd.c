@@ -247,6 +247,8 @@ prog_options.wind_gust_suffix_txt = "";
 prog_options.forecast_txt = "Forecast: ";
 prog_options.trend_txt = "Trend: ";
 
+prog_options.wind_chill_txt = "Wind Chill: ";
+
 prog_options.no_reading_txt = "-";
 prog_options.foreground = 0;
 prog_options.fuzzy = 0;
@@ -599,6 +601,9 @@ data_handlers[DATA_TYPE_FORECAST].display_handler = display_forecast;
 
 data_handlers[DATA_TYPE_TREND].data_handler = dh_trend;
 data_handlers[DATA_TYPE_TREND].display_handler = display_trend;
+
+data_handlers[DATA_TYPE_WIND_CHILL].data_handler = dh_windchill;
+data_handlers[DATA_TYPE_WIND_CHILL].display_handler = display_windchill;
 
 return 0;
 }

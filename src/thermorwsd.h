@@ -95,6 +95,8 @@ struct ws_prog_options
 	char *forecast_txt;
 	char *trend_txt;
 
+	char *wind_chill_txt;
+
 	char *no_reading_txt;
 	};
 

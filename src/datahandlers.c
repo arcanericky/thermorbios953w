@@ -315,3 +315,20 @@ DISPLAY_HANDLER(datatype, data[7], &data[4]);
 
 return 0;
 }
+
+/*-----------------------------------------------------------------*/
+int
+dh_windchill(int *data)
+{
+int datatype;
+int chill;
+
+datatype = data[3];
+
+chill = (data[5] << 8) + data[6];
+chill = chill - 74;
+
+DISPLAY_HANDLER(datatype, data[7], chill);
+
+return 0;
+}

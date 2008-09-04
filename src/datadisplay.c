@@ -294,3 +294,13 @@ output_data("%s%s%d %d\n",
 
 return 0;
 }
+
+/*-----------------------------------------------------------------*/
+int
+display_windchill(int datatype, int data)
+{
+output_data("%s%s%d.%d\n",
+	hlc(datatype), prog_options.wind_chill_txt, TENTHS(data));
+
+return 0;
+}
