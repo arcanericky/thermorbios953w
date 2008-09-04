@@ -294,6 +294,7 @@ while (1)
 		case 'v':
 		case debug:
 			prog_options.debug_lvl = atoi(optarg);
+			break;
 		case inside_temp_text:
 			prog_options.in_temp_txt = optarg;
 			break;
