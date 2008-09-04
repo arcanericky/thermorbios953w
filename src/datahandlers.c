@@ -259,7 +259,7 @@ wind_direction = data[5];
 wind_direction = abs(wind_direction);
 
 /* Needed for --fuzzy option so it falls within bounds */
-wind_direction = wind_direction % 16;
+wind_direction = wind_direction % 17;
 
 switch(wind_direction)
 	{

@@ -25,6 +25,7 @@
 #define DATA_TYPE_HUMIDITY		0x18
 #define DATA_TYPE_FORECAST		0x19
 #define DATA_TYPE_TREND			0x1a
+#define DATA_TYPE_UNKNOWN1		0x1b
 #define DATA_TYPE_MAX			0x1c
 
 /* Data Categories */
