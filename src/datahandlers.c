@@ -18,7 +18,6 @@ extern struct ws_prog_options prog_options;
 static int
 log_data(int *data)
 {
-char text_time[20];
 int x;
 
 if (prog_options.debug_lvl < 4)
@@ -26,9 +25,7 @@ if (prog_options.debug_lvl < 4)
 	return 0;
 	}
 
-get_time(text_time);
-
-fprintf(prog_options.output_fs, "%s IN  ", text_time);
+fprintf(prog_options.output_fs, "IN  ");
 
 for (x = 0; x < NUM_DATA; x++)
 	{
@@ -294,6 +291,8 @@ dh_forecast(int *data)
 int datatype;
 int forecast;
 
+log_data(data);
+
 datatype = data[3];
 
 forecast = data[5];
@@ -309,6 +308,8 @@ dh_trend(int *data)
 {
 int datatype;
 
+log_data(data);
+
 datatype = data[3];
 
 DISPLAY_HANDLER(datatype, data[7], &data[4]);
@@ -323,10 +324,12 @@ dh_windchill(int *data)
 int datatype;
 int chill;
 
+log_data(data);
+
 datatype = data[3];
 
 chill = (data[5] << 8) + data[6];
-chill = chill - 74;
+chill = chill - 740;
 
 DISPLAY_HANDLER(datatype, data[7], chill);
 

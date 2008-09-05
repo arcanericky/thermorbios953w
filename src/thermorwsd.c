@@ -127,6 +127,9 @@ enum options
 	wind_gust_text,
 	wind_gust_suffix_text,
 
+	wind_chill_text,
+	wind_chill_suffix_text,
+
 	forecast_text,
 	trend_text,
 
@@ -178,6 +181,10 @@ static struct option long_options[] = {
 	{ "wind-gust-text",			required_argument, 0, wind_gust_text },
 	{ "wind-gust-suffix-text",	required_argument, 0,
 												wind_gust_suffix_text },
+
+	{ "wind-chill-text",			required_argument, 0, wind_chill_text },
+	{ "wind-chill-suffix-text",		required_argument, 0,
+												wind_chill_suffix_text },
 
 	{ "forecast-text",			required_argument, 0, forecast_text },
 	{ "trend-text",				required_argument, 0, trend_text },
@@ -231,7 +238,7 @@ prog_options.in_temp_suffix_txt = " C";
 prog_options.out_temp_txt = "Outside Temperature: ";
 prog_options.out_temp_suffix_txt = " C";
 prog_options.rain_txt = "Rain: ";
-prog_options.rain_suffix_txt = " clicks";
+prog_options.rain_suffix_txt = " ml";
 prog_options.humidity_txt = "Humidity: ";
 prog_options.humidity_suffix_txt = " %";
 prog_options.pressure_txt = "Pressure: ";
@@ -240,14 +247,15 @@ prog_options.pressure_suffix_txt = " mb";
 prog_options.wind_dir_txt = "Wind Direction: ";
 prog_options.wind_dir_suffix_txt = "";
 prog_options.wind_speed_txt = "Wind Speed: ";
-prog_options.wind_speed_suffix_txt = "";
+prog_options.wind_speed_suffix_txt = " km/h";
 prog_options.wind_gust_txt = "Wind Gust: ";
-prog_options.wind_gust_suffix_txt = "";
+prog_options.wind_gust_suffix_txt = " km/h";
 
 prog_options.forecast_txt = "Forecast: ";
 prog_options.trend_txt = "Trend: ";
 
 prog_options.wind_chill_txt = "Wind Chill: ";
+prog_options.wind_chill_suffix_txt = " C";
 
 prog_options.no_reading_txt = "-";
 prog_options.foreground = 0;
@@ -344,6 +352,12 @@ while (1)
 			break;
 		case wind_gust_suffix_text:
 			prog_options.wind_gust_suffix_txt = optarg;
+			break;
+		case wind_chill_text:
+			prog_options.wind_chill_txt = optarg;
+			break;
+		case wind_chill_suffix_text:
+			prog_options.wind_chill_suffix_txt = optarg;
 			break;
 		case forecast_text:
 			prog_options.forecast_txt = optarg;
@@ -443,6 +457,8 @@ printf("\t--wind-speed-suffix-text\n");
 printf("\t--wind-gust-text\n");
 printf("\t\tDefault: %s\n", prog_options.wind_gust_txt);
 printf("\t--wind-gust-suffix-text\n");
+printf("\t--wind-chill-text\n");
+printf("\t--wind-chill-suffix-text\n");
 printf("\t--forecast-text\n");
 printf("\t\tDefault: %s\n", prog_options.forecast_txt);
 printf("\t--trend-text\n");
@@ -529,7 +545,6 @@ return 0;
 int
 generic_data_handler(int *data)
 {
-char text_time[20];
 int x;
 
 if (prog_options.fuzzy)
@@ -537,9 +552,7 @@ if (prog_options.fuzzy)
 	return 0;
 	}
 
-get_time(text_time);
-
-fprintf(prog_options.output_fs, "%s IN  ", text_time);
+fprintf(prog_options.output_fs, "IN  ");
 
 for (x = 0; x < NUM_DATA; x++)
 	{

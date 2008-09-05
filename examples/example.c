@@ -29,7 +29,9 @@
 #include <stdlib.h>
 #endif
 
+#ifdef HAVE_STDIO_H
 #include <stdio.h>
+#endif
 
 #ifdef HAVE_STRING_H
 #include <string.h>
@@ -212,6 +214,8 @@ while (1)
 			else
 				printf("%d.%d ml\n", x / 10, abs(x % 10));
 			break;
+		case 0x12:	/* Wind Chill */
+			break;
 		case 0x13:	/* Outside Temperature */
 			x = (data[5] << 8) + data[6];
 			x = x - 400;
@@ -230,28 +234,37 @@ while (1)
 			else
 				printf("%d.%d C\n", x / 10, abs(x % 10));
 			break;
-			break;
 		case 0x15:	/* Wind Directon */
 			x = data[5];
-			x = x % 16;
-			x = x * 225;
 			printf("Wind Direction: ");
-			if (x == 0x10)
-				printf("No Reading\n");
-			else
-				printf("%d.%d degrees\n", x / 10, abs(x % 10));
+			switch (x)
+				{
+				case 0x0: printf("157"); break;
+				case 0x10: printf("No Reading\n"); break;
+				}
+
+			if (x != 0x10)
+				{
+				printf(" degrees\n");
+				}
 			break;
-		case 0x16:	/* Unknown Wind 1 */
-			printf("%s Unknown Wind 1: %2.2X %2.2X %2.2X\n",
-				rtype, data[4], data[5], data[6]);
+		case 0x16:	/* Wind Speed */
+			x = (data[5] << 8) + data[6];
+			printf("%s Wind Speed: %d\n", rtype, x);
 			break;
-		case 0x17:	/* Unknown Wind 2 */
-			printf("%s Unknown Wind 2: %2.2X %2.2X %2.2X\n",
-				rtype, data[4], data[5], data[6]);
+		case 0x17:	/* Wind Gust */
+			x = (data[5] << 8) + data[6];
+			printf("%s Wind Gust: %d\n", rtype, x);
 			break;
 		case 0x18:	/* Humidity */
 			x = data[5];
-			printf("%s Humidity: %d%%\n", rtype, x);
+			printf("%s Humidity: %d %%\n", rtype, x);
+			break;
+		case 0x19:	/* Forecast */
+			break;
+		case 0x1a:	/* Trend */
+			break;
+		case 0x1b:	/* Unknown */
 			break;
 		}
 

@@ -209,8 +209,9 @@ if ((data | 0xFFFF) == data)
 	}
 else
 	{
-	output_data("%s%s%d.%d\n",
-		hlc(datatype), prog_options.wind_speed_txt, TENTHS(data));
+	output_data("%s%s%d.%d%s\n",
+		hlc(datatype), prog_options.wind_speed_txt, TENTHS(data),
+		prog_options.wind_speed_suffix_txt);
 	}
 
 return (0);
@@ -228,8 +229,9 @@ if ((data | 0xFFFF) == data)
 	}
 else
 	{
-	output_data("%s%s%d.%d\n",
-		hlc(datatype), prog_options.wind_gust_txt, TENTHS(data));
+	output_data("%s%s%d.%d%s\n",
+		hlc(datatype), prog_options.wind_gust_txt, TENTHS(data),
+		prog_options.wind_gust_suffix_txt);
 	}
 
 return (0);
@@ -241,7 +243,6 @@ display_winddir(int datatype, int data)
 {
 if (data == 0x10)
 	{
-	fprintf(prog_options.output_fs, "Datatype is: %x\n", datatype);
 	output_data("%s%s%s\n", hlc(datatype),
 		prog_options.wind_dir_txt, prog_options.no_reading_txt);
 	}
@@ -299,8 +300,17 @@ return 0;
 int
 display_windchill(int datatype, int data)
 {
-output_data("%s%s%d.%d\n",
-	hlc(datatype), prog_options.wind_chill_txt, TENTHS(data));
+if (data == 48028)
+	{
+	output_data("%s%s%s\n", hlc(datatype),
+		prog_options.wind_chill_txt, prog_options.no_reading_txt);
+	}
+else
+	{
+	output_data("%s%s%d.%d%s\n",
+		hlc(datatype), prog_options.wind_chill_txt, TENTHS(data),
+		prog_options.wind_chill_suffix_txt);
+	}
 
 return 0;
 }

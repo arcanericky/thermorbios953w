@@ -37,7 +37,14 @@ bw953_open(char *filename)
 {
 int fd;
 
-fd = open(filename, O_RDWR);
+if (prog_options.fuzzy == 0 && prog_options.play_data_file == NULL)
+	{
+	fd = open(filename, O_RDWR);
+	}
+	{
+	fd = open(filename, O_RDONLY);
+	}
+
 if (fd == -1)
 	{
 	perror("open");

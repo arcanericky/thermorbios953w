@@ -16,7 +16,7 @@
 #define DATA_TYPE_TIME			0x03
 #define DATA_TYPE_PRESSURE		0x10
 #define DATA_TYPE_RAIN			0x11
-#define DATA_TYPE_WIND_CHILL	0x12	/* not used yet */
+#define DATA_TYPE_WIND_CHILL	0x12
 #define DATA_TYPE_OUT_TEMP		0x13
 #define DATA_TYPE_IN_TEMP		0x14
 #define DATA_TYPE_WIND_DIR		0x15
@@ -96,6 +96,7 @@ struct ws_prog_options
 	char *trend_txt;
 
 	char *wind_chill_txt;
+	char *wind_chill_suffix_txt;
 
 	char *no_reading_txt;
 	};
