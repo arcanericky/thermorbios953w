@@ -248,8 +248,9 @@ if (data == 0x10)
 	}
 else
 	{
-	output_data("%s%s%d\n",
-		hlc(datatype), prog_options.wind_dir_txt, data);
+	output_data("%s%s%d%s\n",
+		hlc(datatype), prog_options.wind_dir_txt, data,
+		prog_options.wind_dir_suffix_txt);
 	}
 
 return 0;

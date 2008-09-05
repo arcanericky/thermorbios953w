@@ -238,14 +238,14 @@ prog_options.in_temp_suffix_txt = " C";
 prog_options.out_temp_txt = "Outside Temperature: ";
 prog_options.out_temp_suffix_txt = " C";
 prog_options.rain_txt = "Rain: ";
-prog_options.rain_suffix_txt = " ml";
+prog_options.rain_suffix_txt = " mm";
 prog_options.humidity_txt = "Humidity: ";
 prog_options.humidity_suffix_txt = " %";
 prog_options.pressure_txt = "Pressure: ";
 prog_options.pressure_suffix_txt = " mb";
 
 prog_options.wind_dir_txt = "Wind Direction: ";
-prog_options.wind_dir_suffix_txt = "";
+prog_options.wind_dir_suffix_txt = " degrees";
 prog_options.wind_speed_txt = "Wind Speed: ";
 prog_options.wind_speed_suffix_txt = " km/h";
 prog_options.wind_gust_txt = "Wind Gust: ";
@@ -391,6 +391,7 @@ while (1)
 			break;
 		case foreground:
 			prog_options.foreground = 1;
+			prog_options.output_filename = "";
 			break;
 		case fuzzy:
 			prog_options.fuzzy = 1;
@@ -405,6 +406,9 @@ while (1)
 			prog_options.play_data_file = optarg;
 			break;
 		case '?':
+			fprintf(stderr, "Use --help for more information.\n");
+			return -1;
+			break;
 		case help:
 printf("ws9xxd - Weather Station Daemon for Bios/Thermor 9xx Series\n");
 printf("Usage:\n");
@@ -480,6 +484,8 @@ printf("\t--play-data-file\n");
 printf("\t--debug\n");
 printf("\t--foreground\n");
 printf("\t\tRun program in foreground (don't run as a server) for testing\n");
+printf("\t\tAlso sets --log-filename to the screen unless overridden with\n");
+printf("\t\tsubsequent option\n");
 printf("\t--fuzzy\n");
 printf("\t\tGenerate weather station data using random number generator.\n");
 printf("\t\tCauses strange data, but useful for testing.\n");
@@ -674,7 +680,6 @@ int ret;
 ret = set_prog_options(argc, argv);
 if (ret)
 	{
-	fprintf(prog_options.output_fs, "Failed to set program options\n");
 	return 1;
 	}
 
