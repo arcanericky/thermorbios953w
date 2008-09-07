@@ -1,7 +1,3 @@
-#!/bin/sh
-WVIEW_CONF_DIR=/usr/local/etc/wview
-WVIEW_DATA_DIR=/usr/local/var/wview
-STATION_TYPE=VantagePro
 ################################################################################
 #
 # File:           wviewconfig.sh
