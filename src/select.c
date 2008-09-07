@@ -58,6 +58,7 @@ bm = list_entry(cur->broadcast_msgs.list.next,
 
 /* FIXME: Nonportable - handle SIGPIPE later */
 ret = send(fd, bm->message, bm->length, MSG_NOSIGNAL);
+fsync(fd);
 #if 0
 ret = write(fd, bm->message, bm->length);
 #endif

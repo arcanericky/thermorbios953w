@@ -291,7 +291,7 @@ while (1)
 			break;
 		case 'p':
 		case pressure_adj:
-			prog_options.pressure_adj = atoi(optarg);
+			prog_options.pressure_adj = atof(optarg) * 10;
 			break;
 		case 'd':
 		case device_name:
