@@ -22,7 +22,7 @@ patch -p0 < ../wview-4.0.1-patch/wview.pat
 
 # Update with autotools
 aclocal
-autheader
+autoheader
 automake
 autoconf
 
