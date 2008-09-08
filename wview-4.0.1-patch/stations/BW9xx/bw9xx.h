@@ -1,23 +1,21 @@
-#ifndef INC_simulatorh
-#define INC_simulatorh
+#ifndef INC_bw9xxh
+#define INC_bw9xxh
 /*---------------------------------------------------------------------------
  
   FILENAME:
-        simulator.h
+        bw9xx.h
  
   PURPOSE:
         Provide the station simulator interface API and utilities.
  
   REVISION HISTORY:
         Date            Engineer        Revision        Remarks
-        01/19/2006      M.S. Teel       0               Original
+        09/08/2008      R.G. Pike       0               Original
  
   NOTES:
         
  
   LICENSE:
-        Copyright (c) 2006, Mark S. Teel (mark@teel.ws)
-  
         This source code is released for free distribution under the terms 
         of the GNU General Public License.
   
@@ -66,8 +64,7 @@ typedef struct
     float           longitude;
     int             archiveInterval;
 
-} SIMULATOR_IF_DATA;
-
+} BW9XX_IF_DATA;
 
 #endif
 

@@ -14,7 +14,6 @@
         
  
   LICENSE:
-  
         This source code is released for free distribution under the terms 
         of the GNU General Public License.
   
@@ -44,21 +43,51 @@
 */
 #define PERIOD_FACTOR       4
 
-static SIMULATOR_IF_DATA simWorkData;
+static BW9XX_IF_DATA simWorkData;
 static void (*ArchiveIndicator) (ARCHIVE_RECORD *newRecord);
-static int DataGenerator;
-static void storeLoopPkt (LOOP_PKT *dest);
+static int storeLoopPkt (LOOP_PKT *dest);
 static void *readerLoop(void *);
 
-static float inTemp;
-static float outTemp;
-static float barometer;
-static short humidity;
-static short direction;
-static float curwindspeed;
-static short maxgust;
-static short rain;
-static short prev_rain;
+struct bw9xx_data
+	{
+	float inTemp;
+	float outTemp;
+	float barometer;
+	short humidity;
+	short direction;
+	short curwindspeed;
+	short maxgust;
+	short rain;
+	short prev_rain;
+
+	pthread_mutex_t locker;
+	int dataready;
+	};
+
+static char * getData(char *monitorstring, char *datastring)
+{
+char *s;
+char *space;
+
+s = datastring + strlen(monitorstring);
+
+if (*s == '-')
+	{
+	return NULL;
+	}
+
+space = (strchr(s, ' '));
+if (space == NULL)
+	{
+	return s;
+	}
+
+*space = '\0';
+
+return s;
+}
+
+static struct bw9xx_data weather_data;
 
 float MmToInches(short mm)
 {
@@ -131,10 +160,7 @@ int stationInit
 {
 	pthread_t t;
 
-    int             minutes;
-
-
-    memset (&simWorkData, 0, sizeof(simWorkData));
+    memset(&simWorkData, 0, sizeof(simWorkData));
 
     // save the archive indication callback (we should never need it)
     ArchiveIndicator = archiveIndication;
@@ -156,39 +182,38 @@ int stationInit
     work->medium.fd = -1;
 
     // grab the station configuration now
-    if (stationGetConfigValueInt (work, 
-                                  STATION_PARM_ELEVATION, 
-                                  &simWorkData.elevation) 
-        == ERROR)
+    if (stationGetConfigValueInt (work, STATION_PARM_ELEVATION, 
+		&simWorkData.elevation) == ERROR)
     {
-        radMsgLog (PRI_HIGH, "stationInit: stationGetConfigValueInt ELEV failed!");
+        radMsgLog (PRI_HIGH,
+			"stationInit: stationGetConfigValueInt ELEV failed!");
         (*(work->medium.exit)) (&work->medium);
         return ERROR;
     }
-    if (stationGetConfigValueFloat (work, 
-                                    STATION_PARM_LATITUDE, 
-                                    &simWorkData.latitude) 
-        == ERROR)
+
+    if (stationGetConfigValueFloat (work, STATION_PARM_LATITUDE, 
+		&simWorkData.latitude) == ERROR)
     {
-        radMsgLog (PRI_HIGH, "stationInit: stationGetConfigValueInt LAT failed!");
+        radMsgLog (PRI_HIGH,
+			"stationInit: stationGetConfigValueInt LAT failed!");
         (*(work->medium.exit)) (&work->medium);
         return ERROR;
     }
-    if (stationGetConfigValueFloat (work, 
-                                    STATION_PARM_LONGITUDE, 
-                                    &simWorkData.longitude) 
-        == ERROR)
+
+    if (stationGetConfigValueFloat (work, STATION_PARM_LONGITUDE, 
+		&simWorkData.longitude) == ERROR)
     {
-        radMsgLog (PRI_HIGH, "stationInit: stationGetConfigValueInt LONG failed!");
+        radMsgLog (PRI_HIGH,
+			"stationInit: stationGetConfigValueInt LONG failed!");
         (*(work->medium.exit)) (&work->medium);
         return ERROR;
     }
-    if (stationGetConfigValueInt (work, 
-                                  STATION_PARM_ARC_INTERVAL, 
-                                  &simWorkData.archiveInterval) 
-        == ERROR)
+
+    if (stationGetConfigValueInt (work, STATION_PARM_ARC_INTERVAL, 
+		&simWorkData.archiveInterval) == ERROR)
     {
-        radMsgLog (PRI_HIGH, "stationInit: stationGetConfigValueInt ARCINT failed!");
+        radMsgLog (PRI_HIGH,
+			"stationInit: stationGetConfigValueInt ARCINT failed!");
         (*(work->medium.exit)) (&work->medium);
         return ERROR;
     }
@@ -200,45 +225,42 @@ int stationInit
     if (stationVerifyArchiveInterval (work) == ERROR)
     {
         // bad magic!
-        radMsgLog (PRI_HIGH, "stationInit: stationVerifyArchiveInterval failed!");
-        radMsgLog (PRI_HIGH, "You must either move old /var/wview/archive files out of the way -or-");
+        radMsgLog (PRI_HIGH,
+			"stationInit: stationVerifyArchiveInterval failed!");
+        radMsgLog (PRI_HIGH,
+			"You must either move old /var/wview/archive files out "
+			"of the way -or-");
         radMsgLog (PRI_HIGH, "fix the wview.conf setting...");
         return ERROR;
     }
     else
     {
         radMsgLog (PRI_STATUS, "station archive interval: %d minutes",
-                   work->archiveInterval);
+			work->archiveInterval);
     }
 
-
     // initialize the station interface
-    // nothing to do here...
-
+	pthread_mutex_init(&weather_data.locker, NULL);
+	weather_data.dataready = -1;
 	pthread_create(&t, NULL, readerLoop, NULL);
 
+	/* Loop until data is ready from reader thread */
+	while (1)
+		{					
+		pthread_mutex_lock(&weather_data.locker);
+		if (weather_data.dataready == 1)
+			{
+			pthread_mutex_unlock(&weather_data.locker);
+			break;
+			}
+		pthread_mutex_unlock(&weather_data.locker);
 
-	/* FIXME: It takes at least 60 seconds to gather a full round of
-	 *			data from the BW9xx.  For now, sleep for 65 seconds
-	 *			to ensure we have data.  Would be better to
-	 *			wait until we read the time/date twice, meaning
-	 *			we have a full round of data
-	 */
-	sleep(65);
-
+		sleep(1);
+		}
 
     // do the initial GetReadings now
     // populate the LOOP structure
-    storeLoopPkt (&work->loopPkt);
-
-    // compute the data generation period
-    minutes = 360 * PERIOD_FACTOR;
-    minutes *= (work->cdataInterval/1000);
-    minutes /= 60;
-
-    radMsgLog (PRI_STATUS,
-		"Simulator station opened: %d minute data generation period...",
-		minutes);
+    storeLoopPkt(&work->loopPkt);
 
     // we can indicate successful completion here!
     radProcessEventsSend (NULL, STATION_INIT_COMPLETE_EVENT, 0);
@@ -282,11 +304,12 @@ int stationGetPosition (WVIEWD_WORK *work)
     radMsgLog (PRI_STATUS, "station location: elevation: %d feet",
                work->elevation);
 
-    radMsgLog (PRI_STATUS, "station location: latitude: %3.1f %c  longitude: %3.1f %c",
-               (float)abs(work->latitude)/10.0,
-               ((work->latitude < 0) ? 'S' : 'N'),
-               (float)abs(work->longitude)/10.0,
-               ((work->longitude < 0) ? 'W' : 'E'));
+    radMsgLog(PRI_STATUS,
+		"station location: latitude: %3.1f %c  longitude: %3.1f %c",
+		(float)abs(work->latitude)/10.0,
+		((work->latitude < 0) ? 'S' : 'N'),
+		(float)abs(work->longitude)/10.0,
+		((work->longitude < 0) ? 'W' : 'E'));
 
     return OK;
 }
@@ -312,15 +335,20 @@ int stationSyncTime (WVIEWD_WORK *work)
 //
 // Returns: OK or ERROR
 //
-int stationGetReadings (WVIEWD_WORK *work)
+int stationGetReadings(WVIEWD_WORK *work)
 {
-    // populate the LOOP structure (with dummy data)
-    storeLoopPkt (&work->loopPkt);
+int ret;
 
-    // indicate we are done
-    radProcessEventsSend (NULL, STATION_LOOP_COMPLETE_EVENT, 0);
+// populate the LOOP structure
+ret = storeLoopPkt(&work->loopPkt);
+
+if (ret)
+	{
+	// indicate we are done
+	radProcessEventsSend(NULL, STATION_LOOP_COMPLETE_EVENT, 0);
+	}
     
-    return OK;
+return OK;
 }
 
 // station-supplied function to indicate an archive record should be generated -
@@ -379,49 +407,62 @@ void stationIFTimerExpiry (WVIEWD_WORK *work)
 
 //  ... ----- static (local) methods ----- ...
 
-static void storeLoopPkt (LOOP_PKT *dest)
+static int storeLoopPkt (LOOP_PKT *dest)
 {
-	dest->barometer = MillibarsToInches(barometer);
- 	dest->outTemp = CelsiusToFahrenheit(outTemp);
- 	dest->inTemp = CelsiusToFahrenheit(inTemp);
-	dest->outHumidity = humidity;
-	dest->windDir = direction;
-    dest->windSpeed = KmhToMph(curwindspeed);
-    dest->windGust = KmhToMph(maxgust);
+pthread_mutex_lock(&weather_data.locker);
 
-	radMsgLog (PRI_STATUS, "Current rain: %d, Prev Rain %d", rain, prev_rain);
-    dest->sampleRain = MmToInches(rain - prev_rain);
-	prev_rain = rain;
+if (weather_data.dataready < 1)
+	{
+	pthread_mutex_unlock(&weather_data.locker);
+	return 0;
+	}
 
-    // calculate station pressure by giving a negative elevation 
-    dest->stationPressure = wvutilsConvertSPToSLP(dest->barometer, 
-		dest->outTemp, (float)(-simWorkData.elevation));
+dest->barometer = MillibarsToInches(weather_data.barometer);
+dest->outTemp = CelsiusToFahrenheit(weather_data.outTemp);
+dest->inTemp = CelsiusToFahrenheit(weather_data.inTemp);
+dest->outHumidity = weather_data.humidity;
+dest->windDir = weather_data.direction;
+dest->windSpeed = KmhToMph(weather_data.curwindspeed);
+dest->windGust = KmhToMph(weather_data.maxgust);
 
-    // calculate altimeter
-    dest->altimeter = wvutilsConvertSPToAltimeter(dest->stationPressure,
-		(float)simWorkData.elevation);
+#if 0
+radMsgLog (PRI_STATUS, "Current rain: %d, Prev Rain %d",
+	weather_data.rain, weather_data.prev_rain);
+#endif
 
-    // clear the ones we don't support
-    dest->inHumidity                    = 0;
-    dest->sampleET                      = 0;
-    dest->radiation                     = 0;
-    dest->UV                            = 0;
-    dest->rainRate						= 0;
-    dest->windGustDir					= 0;
+dest->sampleRain = MmToInches(weather_data.rain -
+	weather_data.prev_rain);
+weather_data.prev_rain = weather_data.rain;
 
-    // now calculate a few
-    dest->dewpoint = wvutilsCalculateDewpoint (dest->outTemp, 
-		(float)dest->outHumidity);
-    dest->windchill = wvutilsCalculateWindChill (dest->outTemp, 
-		(float)dest->windSpeed);
-    dest->heatindex = wvutilsCalculateHeatIndex (dest->outTemp, 
-		(float)dest->outHumidity);
+// calculate station pressure by giving a negative elevation 
+dest->stationPressure = wvutilsConvertSPToSLP(dest->barometer, 
+	dest->outTemp, (float)(-simWorkData.elevation));
 
-    // bump our data generator index
-    DataGenerator++;
-    DataGenerator %= (360*PERIOD_FACTOR);
-    
-    return;
+// calculate altimeter
+dest->altimeter = wvutilsConvertSPToAltimeter(dest->stationPressure,
+	(float)simWorkData.elevation);
+
+// clear the ones we don't support
+dest->inHumidity = 0;
+dest->sampleET = 0;
+dest->radiation = 0;
+dest->UV = 0;
+dest->rainRate= 0;
+dest->windGustDir= 0;
+
+// now calculate a few
+dest->dewpoint = wvutilsCalculateDewpoint (dest->outTemp, 
+	(float)dest->outHumidity);
+dest->windchill = wvutilsCalculateWindChill (dest->outTemp, 
+	(float)dest->windSpeed);
+dest->heatindex = wvutilsCalculateHeatIndex (dest->outTemp, 
+	(float)dest->outHumidity);
+
+/* Decrement dataready since it has been used */
+weather_data.dataready = 0;;
+pthread_mutex_unlock(&weather_data.locker);
+
+return 1;
 }
 
 void *readerLoop(void *notused)
@@ -434,122 +475,132 @@ int ret;
 
 notused = notused;
 
-fd = socket(PF_UNIX, SOCK_STREAM, 0);
-if (fd == -1)
+/* Loop until connect with socket is successful */
+while (1)
 	{
-	perror("socket");
-	return NULL;
-	}
+	fd = socket(PF_UNIX, SOCK_STREAM, 0);
+	if (fd == -1)
+		{
+		return NULL;
+		}
 
-memset(&sun, 0, sizeof (sun));
-sun.sun_family = AF_UNIX;
-memcpy(sun.sun_path, path, strlen(path) + 1);
+	memset(&sun, 0, sizeof (sun));
+	sun.sun_family = AF_UNIX;
+	memcpy(sun.sun_path, path, strlen(path) + 1);
 
-ret = connect(fd, (struct sockaddr *) &sun, sizeof (sun));
-if (ret == -1)
-	{
-	perror("connect");
-	return NULL;
-	}
-
-memset(buf, 0, sizeof(buf));
-
-/* FIXME: This read and the read in the loop below are the cheap
- *			way out.  Network read should either be double
- *			buffered, or socket changed to a stream and read
- *			until a newline, or read a byte at a time until
- *			a newline is hit.  This gets us by for now, change later.
- */
-ret = read(fd, buf, sizeof(buf));
-while (ret > 0)
-	{
-	char *Barometer = "DATA: Current Pressure: ";
-	char *Humidity = "DATA: Current Humidity: ";
-	char *InsideCurTempText = "DATA: Current Inside Temperature: ";
-	char *OutsideCurTempText = "DATA: Current Outside Temperature: ";
-	char *WindDirection = "DATA: Wind Direction: ";
-	char *CurWindSpeed = "DATA: Current Wind Speed: ";
-	char *MaxWindGust = "DATA: Maximum Wind Gust: ";
-	char *CurRain = "DATA: Current Rain: ";
-	/* radMsgLog (PRI_STATUS, buf); */
-
-	if (strstr(buf, InsideCurTempText))
+	while (1)
 		{
-		char *s = buf + strlen(InsideCurTempText);
-		if (*s != '-')
+		ret = connect(fd, (struct sockaddr *) &sun, sizeof (sun));
+		if (ret == -1)
 			{
-			*(strchr(s, ' ')) = '\0';
-			inTemp = atof(s);
+			sleep(1);
+			continue;
 			}
-		}
-	else if (strstr(buf, OutsideCurTempText))
-		{
-		char *s = buf + strlen(OutsideCurTempText);
-		if (*s != '-')
+		else
 			{
-			*(strchr(s, ' ')) = '\0';
-			outTemp = atof(s);
-			}
-		}
-	else if (strstr(buf, Barometer))
-		{
-		char *s = buf + strlen(Barometer);
-		if (*s != '-')
-			{
-			*(strchr(s, ' ')) = '\0';
-			barometer = atof(s);
-			}
-		}
-	else if (strstr(buf, Humidity))
-		{
-		char *s = buf + strlen(Humidity);
-		if (*s != '-')
-			{
-			*(strchr(s, ' ')) = '\0';
-			humidity = atoi(s);
-			}
-		}
-	else if (strstr(buf, WindDirection))
-		{
-		char *s = buf + strlen(WindDirection);
-		if (*s != '-')
-			{
-			*(strchr(s, ' ')) = '\0';
-			direction = atoi(s);
-			}
-		}
-	else if (strstr(buf, CurWindSpeed))
-		{
-		char *s = buf + strlen(CurWindSpeed);
-		if (*s != '-')
-			{
-			*(strchr(s, ' ')) = '\0';
-			curwindspeed = atof(s);
-			}
-		}
-	else if (strstr(buf, MaxWindGust))
-		{
-		char *s = buf + strlen(MaxWindGust);
-		if (*s != '-')
-			{
-			*(strchr(s, ' ')) = '\0';
-			maxgust = atoi(s);
-			}
-		}
-	else if (strstr(buf, CurRain))
-		{
-		char *s = buf + strlen(CurRain);
-		if (*s != '-')
-			{
-			*(strchr(s, ' ')) = '\0';
-			rain = atoi(s);
+			radMsgLog(PRI_STATUS, "Connected with ws9xxd");
+			break;
 			}
 		}
 
 	memset(buf, 0, sizeof(buf));
+
+	/* FIXME: This read and the read in the loop below are the cheap
+	 *			way out.  Network read should either be double
+	 *			buffered, or socket changed to a stream and read
+	 *			until a newline, or read a byte at a time until
+	 *			a newline is hit.  This gets us by for now, change later.
+	 */
 	ret = read(fd, buf, sizeof(buf));
+	while (ret > 0)
+		{
+		char *Date = "DATA: Date: ";
+		char *Barometer = "DATA: Current Pressure: ";
+		char *Humidity = "DATA: Current Humidity: ";
+		char *InsideCurTempText = "DATA: Current Inside Temperature: ";
+		char *OutsideCurTempText = "DATA: Current Outside Temperature: ";
+		char *WindDirection = "DATA: Wind Direction: ";
+		char *CurWindSpeed = "DATA: Current Wind Speed: ";
+		char *MaxWindGust = "DATA: Maximum Wind Gust: ";
+		char *CurRain = "DATA: Current Rain: ";
+		//radMsgLog(PRI_STATUS, buf);
+
+#define PROC_DATA_ITEM(searchstring, buffer, dataelement, conversion) \
+	{ \
+	char *s; \
+	s = getData(searchstring, buffer); \
+	if (s != NULL) \
+		{ \
+		pthread_mutex_lock(&weather_data.locker); \
+		dataelement = conversion(s); \
+		pthread_mutex_unlock(&weather_data.locker); \
+		} \
 	}
 
-close(fd);
+		if (strstr(buf, Date))
+			{
+			pthread_mutex_lock(&weather_data.locker);
+			weather_data.dataready++;
+			pthread_mutex_unlock(&weather_data.locker);
+			}
+		if (strstr(buf, InsideCurTempText))
+			{
+			PROC_DATA_ITEM(InsideCurTempText, buf,
+				weather_data.inTemp, atof);
+			}
+		else if (strstr(buf, OutsideCurTempText))
+			{
+			PROC_DATA_ITEM(OutsideCurTempText, buf,
+				weather_data.outTemp, atof);
+			}
+		else if (strstr(buf, Barometer))
+			{
+			PROC_DATA_ITEM(Barometer, buf,
+				weather_data.barometer, atof);
+			}
+		else if (strstr(buf, Humidity))
+			{
+			PROC_DATA_ITEM(Humidity, buf,
+				weather_data.humidity, atoi);
+			}
+		else if (strstr(buf, WindDirection))
+			{
+			PROC_DATA_ITEM(WindDirection, buf,
+				weather_data.direction, atoi);
+			}
+		else if (strstr(buf, CurWindSpeed))
+			{
+			/* FIXME: Value should be rounded */
+			PROC_DATA_ITEM(CurWindSpeed, buf,
+				weather_data.curwindspeed, atoi);
+			}
+		else if (strstr(buf, MaxWindGust))
+			{
+			/* FIXME: Value should be rounded */
+			PROC_DATA_ITEM(MaxWindGust, buf,
+				weather_data.maxgust, atoi);
+			}
+		else if (strstr(buf, CurRain))
+			{
+			PROC_DATA_ITEM(CurRain, buf,
+				weather_data.rain, atoi);
+			}
 
+		memset(buf, 0, sizeof(buf));
+		ret = read(fd, buf, sizeof(buf));
+		}
+
+	close(fd);
+
+	radMsgLog(PRI_STATUS, "Lost connection with ws9xxd");
+
+	/* Reset dataready back to -1 to wait for another full
+	 * round of data once we are connected to ws9xxd again
+	 */
+	pthread_mutex_lock(&weather_data.locker);
+	weather_data.dataready = -1;;
+	pthread_mutex_unlock(&weather_data.locker);
+	}
+
+return NULL;
 }
