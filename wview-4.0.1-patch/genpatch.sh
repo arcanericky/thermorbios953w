@@ -14,7 +14,7 @@ if [ ! -d $wviewdir ]; then
 	exit 0
 fi
 
-filenames=`cat` << EOF
+cat << EOF >> /tmp/fnames$$
 configure.in
 stations/Makefile.am
 stations/BW9xx/bw9xx.c
@@ -23,6 +23,10 @@ stations/BW9xx/Makefile.am
 wviewconfig/Makefile.am
 wviewconfig/wviewconfig.sh
 EOF
+
+filenames=`cat /tmp/fnames$$`
+
+rm -f /tmp/fnames$$
 
 rm -f wview.pat
 
