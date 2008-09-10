@@ -63,7 +63,7 @@ typedef struct
     float           latitude;
     float           longitude;
     int             archiveInterval;
-
+    WV_ACCUM_ID     rainRateAccumulator;    // to compute rain rate
 } BW9XX_IF_DATA;
 
 #endif

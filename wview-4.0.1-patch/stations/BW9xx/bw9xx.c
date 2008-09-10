@@ -41,9 +41,8 @@
 
 /*  ... local memory
 */
-#define PERIOD_FACTOR       4
 
-static BW9XX_IF_DATA simWorkData;
+static BW9XX_IF_DATA bw9xxWorkData;
 static void (*ArchiveIndicator) (ARCHIVE_RECORD *newRecord);
 static int storeLoopPkt (LOOP_PKT *dest);
 static void *readerLoop(void *);
@@ -57,8 +56,8 @@ struct bw9xx_data
 	short direction;
 	short curwindspeed;
 	short maxgust;
-	short rain;
-	short prev_rain;
+	short currain;
+	short prevrain;
 
 	pthread_mutex_t locker;
 	int dataready;
@@ -160,13 +159,28 @@ int stationInit
 {
 	pthread_t t;
 
-    memset(&simWorkData, 0, sizeof(simWorkData));
+    memset(&bw9xxWorkData, 0, sizeof(bw9xxWorkData));
 
     // save the archive indication callback (we should never need it)
     ArchiveIndicator = archiveIndication;
 
     // set our work data pointer
-    work->stationData = &simWorkData;
+    work->stationData = &bw9xxWorkData;
+
+	/* Create the rain accumulator (20 minute age) so we can
+	* compute rain rate.  Note that the WMR918 does this for a 10
+	* minute interval.  I have an idea the WMR918 bucket holds .5mm
+	* instead of the 1mm that the BW9xx does.  In order for us to
+	* get the reading low enough to read for a light rain (considered
+	* to be .10 inch per hour), we need to double this to 20 minutes.
+	* If left at 10 minutes, the small rate we could have would be
+	* .24 inches per hour, which is a bit more than a moderate rain.
+	* This 20 minute setting will get is down to .12 inch per hour.
+	* Of course, this is at the loss of a bit of resolution (such
+	* as a heavy downpour in a 10 minute window) so maybe there is
+	* a happy medium somewhere between 10 and 20.
+	*/
+    bw9xxWorkData.rainRateAccumulator = sensorAccumInit(20);
 
     // set the Archive Generation flag to indicate the Simulator DOES NOT 
     // generate them
@@ -183,7 +197,7 @@ int stationInit
 
     // grab the station configuration now
     if (stationGetConfigValueInt (work, STATION_PARM_ELEVATION, 
-		&simWorkData.elevation) == ERROR)
+		&bw9xxWorkData.elevation) == ERROR)
     {
         radMsgLog (PRI_HIGH,
 			"stationInit: stationGetConfigValueInt ELEV failed!");
@@ -192,7 +206,7 @@ int stationInit
     }
 
     if (stationGetConfigValueFloat (work, STATION_PARM_LATITUDE, 
-		&simWorkData.latitude) == ERROR)
+		&bw9xxWorkData.latitude) == ERROR)
     {
         radMsgLog (PRI_HIGH,
 			"stationInit: stationGetConfigValueInt LAT failed!");
@@ -201,7 +215,7 @@ int stationInit
     }
 
     if (stationGetConfigValueFloat (work, STATION_PARM_LONGITUDE, 
-		&simWorkData.longitude) == ERROR)
+		&bw9xxWorkData.longitude) == ERROR)
     {
         radMsgLog (PRI_HIGH,
 			"stationInit: stationGetConfigValueInt LONG failed!");
@@ -210,7 +224,7 @@ int stationInit
     }
 
     if (stationGetConfigValueInt (work, STATION_PARM_ARC_INTERVAL, 
-		&simWorkData.archiveInterval) == ERROR)
+		&bw9xxWorkData.archiveInterval) == ERROR)
     {
         radMsgLog (PRI_HIGH,
 			"stationInit: stationGetConfigValueInt ARCINT failed!");
@@ -219,7 +233,7 @@ int stationInit
     }
 
     // set the work archive interval now
-    work->archiveInterval = simWorkData.archiveInterval;
+    work->archiveInterval = bw9xxWorkData.archiveInterval;
 
     // sanity check the archive interval against the most recent record
     if (stationVerifyArchiveInterval (work) == ERROR)
@@ -258,6 +272,10 @@ int stationInit
 		sleep(1);
 		}
 
+	// never send rain data stored on station at startup,
+	// rain data should only be accumulated while wview runs
+	weather_data.prevrain = weather_data.currain;
+
     // do the initial GetReadings now
     // populate the LOOP structure
     storeLoopPkt(&work->loopPkt);
@@ -291,15 +309,15 @@ int stationGetPosition (WVIEWD_WORK *work)
 {
     // just set the values from our internal store - we retrieved them in
     // stationInit
-    work->elevation     = (short)simWorkData.elevation;
-    if (simWorkData.latitude >= 0)
-        work->latitude      = (short)((simWorkData.latitude*10)+0.5);
+    work->elevation     = (short)bw9xxWorkData.elevation;
+    if (bw9xxWorkData.latitude >= 0)
+        work->latitude      = (short)((bw9xxWorkData.latitude*10)+0.5);
     else
-        work->latitude      = (short)((simWorkData.latitude*10)-0.5);
-    if (simWorkData.longitude >= 0)
-        work->longitude     = (short)((simWorkData.longitude*10)+0.5);
+        work->latitude      = (short)((bw9xxWorkData.latitude*10)-0.5);
+    if (bw9xxWorkData.longitude >= 0)
+        work->longitude     = (short)((bw9xxWorkData.longitude*10)+0.5);
     else
-        work->longitude     = (short)((simWorkData.longitude*10)-0.5);
+        work->longitude     = (short)((bw9xxWorkData.longitude*10)-0.5);
     
     radMsgLog (PRI_STATUS, "station location: elevation: %d feet",
                work->elevation);
@@ -409,6 +427,8 @@ void stationIFTimerExpiry (WVIEWD_WORK *work)
 
 static int storeLoopPkt (LOOP_PKT *dest)
 {
+time_t nowTime = time(NULL);
+
 pthread_mutex_lock(&weather_data.locker);
 
 if (weather_data.dataready < 1)
@@ -426,36 +446,66 @@ dest->windSpeed = KmhToMph(weather_data.curwindspeed);
 dest->windGust = KmhToMph(weather_data.maxgust);
 
 #if 0
-radMsgLog (PRI_STATUS, "Current rain: %d, Prev Rain %d",
-	weather_data.rain, weather_data.prev_rain);
+radMsgLog (PRI_STATUS, "currain: %d, prevrain: %d",
+	weather_data.currain, weather_data.prevrain);
 #endif
 
-dest->sampleRain = MmToInches(weather_data.rain -
-	weather_data.prev_rain);
-weather_data.prev_rain = weather_data.rain;
+dest->sampleRain = MmToInches(weather_data.currain -
+	weather_data.prevrain);
+
+radMsgLog(PRI_STATUS, "Delivering %f rain", dest->sampleRain);
+
+weather_data.prevrain = weather_data.currain;
+
+// Rain Rate
+sensorAccumAddSample(bw9xxWorkData.rainRateAccumulator, nowTime,
+	dest->sampleRain);
+radMsgLog(PRI_STATUS, "Rain rate: %f",
+	sensorAccumGetTotal(bw9xxWorkData.rainRateAccumulator) * 3);
+
+/* The following should activate rain rate when un'if'ed.
+ * Not activiting for now until the rate that is logged above looks
+ * good
+ */
+#if 0
+dest->rainRate = sensorAccumGetTotal(bw9xxWorkData.rainRateAccumulator);
+dest->rainRate *= 3;      // Accumulator holds 20 minutes
+#endif
 
 // calculate station pressure by giving a negative elevation 
 dest->stationPressure = wvutilsConvertSPToSLP(dest->barometer, 
-	dest->outTemp, (float)(-simWorkData.elevation));
+	dest->outTemp, (float)(-bw9xxWorkData.elevation));
 
 // calculate altimeter
 dest->altimeter = wvutilsConvertSPToAltimeter(dest->stationPressure,
-	(float)simWorkData.elevation);
+	(float)bw9xxWorkData.elevation);
+
+// FIXME: For the BW9xx, I don't see why this can't be calculated at some
+// point.  This is being experimented with above, thanks to the code
+// in WMR918.
+dest->rainRate= 0;
 
 // clear the ones we don't support
 dest->inHumidity = 0;
 dest->sampleET = 0;
 dest->radiation = 0;
 dest->UV = 0;
-dest->rainRate= 0;
 dest->windGustDir= 0;
 
 // now calculate a few
-dest->dewpoint = wvutilsCalculateDewpoint (dest->outTemp, 
-	(float)dest->outHumidity);
-dest->windchill = wvutilsCalculateWindChill (dest->outTemp, 
+
+dest->windchill = wvutilsCalculateWindChill(dest->outTemp, 
 	(float)dest->windSpeed);
-dest->heatindex = wvutilsCalculateHeatIndex (dest->outTemp, 
+
+/* The BW9xx series doesn't actually have an outside humidity
+ * sensor, making dew point and heat index calculations invalid.
+ * Leaving here for now until it is determined if these should
+ * really be set to a default value (0?) or just ignored
+ * on the display.
+ */
+dest->dewpoint = wvutilsCalculateDewpoint(dest->outTemp, 
+	(float)dest->outHumidity);
+dest->heatindex = wvutilsCalculateHeatIndex(dest->outTemp, 
 	(float)dest->outHumidity);
 
 /* Decrement dataready since it has been used */
@@ -521,7 +571,7 @@ while (1)
 		char *OutsideCurTempText = "DATA: Current Outside Temperature: ";
 		char *WindDirection = "DATA: Wind Direction: ";
 		char *CurWindSpeed = "DATA: Current Wind Speed: ";
-		char *MaxWindGust = "DATA: Maximum Wind Gust: ";
+		char *MaxWindGust = "DATA: Current Wind Gust: ";
 		char *CurRain = "DATA: Current Rain: ";
 		//radMsgLog(PRI_STATUS, buf);
 
@@ -550,6 +600,7 @@ while (1)
 			}
 		else if (strstr(buf, OutsideCurTempText))
 			{
+			radMsgLog(PRI_STATUS, buf);
 			PROC_DATA_ITEM(OutsideCurTempText, buf,
 				weather_data.outTemp, atof);
 			}
@@ -583,7 +634,7 @@ while (1)
 		else if (strstr(buf, CurRain))
 			{
 			PROC_DATA_ITEM(CurRain, buf,
-				weather_data.rain, atoi);
+				weather_data.currain, atoi);
 			}
 
 		memset(buf, 0, sizeof(buf));
