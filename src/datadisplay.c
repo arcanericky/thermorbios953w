@@ -315,3 +315,14 @@ else
 
 return 0;
 }
+
+/*-----------------------------------------------------------------*/
+int
+display_unknown1(int datatype, int data)
+{
+output_data("%s%s%d%s\n",
+	hlc(datatype), prog_options.unknown1_txt, data,
+	prog_options.unknown1_suffix_txt);
+
+return 0;
+}

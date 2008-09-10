@@ -133,6 +133,9 @@ enum options
 	forecast_text,
 	trend_text,
 
+	unknown1_text,
+	unknown1_suffix_text,
+
 	max_text,
 	min_text,
 
@@ -185,6 +188,10 @@ static struct option long_options[] = {
 	{ "wind-chill-text",			required_argument, 0, wind_chill_text },
 	{ "wind-chill-suffix-text",		required_argument, 0,
 												wind_chill_suffix_text },
+
+	{ "unknown1-text",				required_argument, 0, unknown1_text },
+	{ "unknown1-suffix-text",		required_argument, 0,
+												unknown1_suffix_text },
 
 	{ "forecast-text",			required_argument, 0, forecast_text },
 	{ "trend-text",				required_argument, 0, trend_text },
@@ -256,6 +263,9 @@ prog_options.trend_txt = "Trend: ";
 
 prog_options.wind_chill_txt = "Wind Chill: ";
 prog_options.wind_chill_suffix_txt = " C";
+
+prog_options.unknown1_txt = "Unknown: ";
+prog_options.unknown1_suffix_txt = " ?";
 
 prog_options.no_reading_txt = "-";
 prog_options.foreground = 0;
@@ -358,6 +368,12 @@ while (1)
 			break;
 		case wind_chill_suffix_text:
 			prog_options.wind_chill_suffix_txt = optarg;
+			break;
+		case unknown1_text:
+			prog_options.unknown1_txt = optarg;
+			break;
+		case unknown1_suffix_text:
+			prog_options.unknown1_suffix_txt = optarg;
 			break;
 		case forecast_text:
 			prog_options.forecast_txt = optarg;
@@ -623,6 +639,9 @@ data_handlers[DATA_TYPE_TREND].display_handler = display_trend;
 
 data_handlers[DATA_TYPE_WIND_CHILL].data_handler = dh_windchill;
 data_handlers[DATA_TYPE_WIND_CHILL].display_handler = display_windchill;
+
+data_handlers[DATA_TYPE_UNKNOWN1].data_handler = dh_unknown1;
+data_handlers[DATA_TYPE_UNKNOWN1].display_handler = display_unknown1;
 
 return 0;
 }

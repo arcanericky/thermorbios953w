@@ -335,3 +335,21 @@ DISPLAY_HANDLER(datatype, data[7], chill);
 
 return 0;
 }
+
+/*-----------------------------------------------------------------*/
+int
+dh_unknown1(int *data)
+{
+int datatype;
+int unknown;
+
+log_data(data);
+
+datatype = data[3];
+
+unknown = data[4];
+
+DISPLAY_HANDLER(datatype, data[7], unknown);
+
+return 0;
+}

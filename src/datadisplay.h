@@ -14,5 +14,6 @@ int display_winddir(int, int);
 int display_forecast(int, int);
 int display_trend(int, int);
 int display_windchill(int, int);
+int display_unknown1(int, int);
 
 #endif

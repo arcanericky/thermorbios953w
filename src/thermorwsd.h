@@ -98,6 +98,9 @@ struct ws_prog_options
 	char *wind_chill_txt;
 	char *wind_chill_suffix_txt;
 
+	char *unknown1_txt;
+	char *unknown1_suffix_txt;
+
 	char *no_reading_txt;
 	};
 
