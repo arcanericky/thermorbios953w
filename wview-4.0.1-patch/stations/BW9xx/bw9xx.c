@@ -52,12 +52,12 @@ struct bw9xx_data
 	float inTemp;
 	float outTemp;
 	float barometer;
-	short humidity;
+	short inHumidity;
 	short direction;
-	short curwindspeed;
-	short maxgust;
-	short currain;
-	short prevrain;
+	float curWindSpeed;
+	float maxGust;
+	short curRain;
+	short prevRain;
 
 	pthread_mutex_t locker;
 	int dataready;
@@ -111,7 +111,7 @@ float MillibarsToInches(float mb)
 return mb * .02953;
 }
 
-short KmhToMph(float kmh)
+float KmhToMph(float kmh)
 {
 float ret;
 
@@ -169,8 +169,8 @@ int stationInit
 
 	/* Create the rain accumulator (20 minute age) so we can
 	* compute rain rate.  Note that the WMR918 does this for a 10
-	* minute interval.  I have an idea the WMR918 bucket holds .5mm
-	* instead of the 1mm that the BW9xx does.  In order for us to
+	* minute interval.  I have an idea the WMR918 bucket holds .25 to
+	* .5mm instead of the 1mm that the BW9xx does.  In order for us to
 	* get the reading low enough to read for a light rain (considered
 	* to be .10 inch per hour), we need to double this to 20 minutes.
 	* If left at 10 minutes, the small rate we could have would be
@@ -182,11 +182,11 @@ int stationInit
 	*/
     bw9xxWorkData.rainRateAccumulator = sensorAccumInit(20);
 
-    // set the Archive Generation flag to indicate the Simulator DOES NOT 
-    // generate them
+    // The BW9xx doesn't generate archive files
     work->stationGeneratesArchives = FALSE;
 
     // Set the rain collector type and size:
+    // Not sure what this is for
     work->rainTicksPerInch = 100;
     work->RainCollectorType = 0x1000;
 
@@ -253,12 +253,16 @@ int stationInit
 			work->archiveInterval);
     }
 
-    // initialize the station interface
+    // connect to station and begin reading data in a thread
+    // There's probably a way to do this without a thread
+    // as wview is made to have the ability to be asynchronous,
+    // but I haven't researched how, and implemented it yet.
 	pthread_mutex_init(&weather_data.locker, NULL);
 	weather_data.dataready = -1;
 	pthread_create(&t, NULL, readerLoop, NULL);
 
-	/* Loop until data is ready from reader thread */
+	// Loop until first round of data is ready from reader thread
+	// This could take up from one to two minutes
 	while (1)
 		{					
 		pthread_mutex_lock(&weather_data.locker);
@@ -274,7 +278,7 @@ int stationInit
 
 	// never send rain data stored on station at startup,
 	// rain data should only be accumulated while wview runs
-	weather_data.prevrain = weather_data.currain;
+	weather_data.prevRain = weather_data.curRain;
 
     // do the initial GetReadings now
     // populate the LOOP structure
@@ -440,22 +444,26 @@ if (weather_data.dataready < 1)
 dest->barometer = MillibarsToInches(weather_data.barometer);
 dest->outTemp = CelsiusToFahrenheit(weather_data.outTemp);
 dest->inTemp = CelsiusToFahrenheit(weather_data.inTemp);
-dest->outHumidity = weather_data.humidity;
+dest->inHumidity = weather_data.inHumidity;
 dest->windDir = weather_data.direction;
-dest->windSpeed = KmhToMph(weather_data.curwindspeed);
-dest->windGust = KmhToMph(weather_data.maxgust);
+
+// Add 0.5 to round speed
+dest->windSpeed = (USHORT) (KmhToMph(weather_data.curWindSpeed) + 0.5);
+
+// Add 0.5 to round speed
+dest->windGust = (USHORT) (KmhToMph(weather_data.maxGust) + 0.5);
 
 #if 0
-radMsgLog (PRI_STATUS, "currain: %d, prevrain: %d",
-	weather_data.currain, weather_data.prevrain);
+radMsgLog (PRI_STATUS, "curRain: %d, prevRain: %d",
+	weather_data.curRain, weather_data.prevRain);
 #endif
 
-dest->sampleRain = MmToInches(weather_data.currain -
-	weather_data.prevrain);
+dest->sampleRain = MmToInches(weather_data.curRain -
+	weather_data.prevRain);
 
 radMsgLog(PRI_STATUS, "Delivering %f rain", dest->sampleRain);
 
-weather_data.prevrain = weather_data.currain;
+weather_data.prevRain = weather_data.curRain;
 
 // Rain Rate
 sensorAccumAddSample(bw9xxWorkData.rainRateAccumulator, nowTime,
@@ -486,11 +494,18 @@ dest->altimeter = wvutilsConvertSPToAltimeter(dest->stationPressure,
 dest->rainRate= 0;
 
 // clear the ones we don't support
-dest->inHumidity = 0;
 dest->sampleET = 0;
 dest->radiation = 0;
 dest->UV = 0;
 dest->windGustDir= 0;
+
+// If outHumidity is set to 0, it causes a bug where updating the sql database
+// will fail (if sql is enabled), as it sets the dewpoint to "nan".  I guess
+// wview hasn't come across a station that doesn't support outside humidity?
+// Set outHumidity to 1 to prevent this.
+// The exact offending insert is:
+// INSERT INTO archive SET RecordTime = "2008-09-10 10:10:00",ArcInt = 5,OutTemp = 76.300003,HiOutTemp = 76.300003,LowOutTemp = 76.300003,InTemp = 75.199997,Barometer = 30.002001,OutHumid = 0.000000,InHumid = 32.000000,Rain = 0.000000,HiRainRate = 0.000000,WindSpeed = 0.000000,HiWindSpeed = 2.000000,WindDir = 112,HiWindDir = 0,Dewpoint = nan,WindChill = 76.300003,HeatIndex = 74.153137
+dest->outHumidity = 1;
 
 // now calculate a few
 
@@ -503,10 +518,14 @@ dest->windchill = wvutilsCalculateWindChill(dest->outTemp,
  * really be set to a default value (0?) or just ignored
  * on the display.
  */
+#if 0
 dest->dewpoint = wvutilsCalculateDewpoint(dest->outTemp, 
 	(float)dest->outHumidity);
 dest->heatindex = wvutilsCalculateHeatIndex(dest->outTemp, 
 	(float)dest->outHumidity);
+#endif
+dest->dewpoint = 0;
+dest->heatindex = 0;
 
 /* Decrement dataready since it has been used */
 weather_data.dataready = 0;;
@@ -571,7 +590,7 @@ while (1)
 		char *OutsideCurTempText = "DATA: Current Outside Temperature: ";
 		char *WindDirection = "DATA: Wind Direction: ";
 		char *CurWindSpeed = "DATA: Current Wind Speed: ";
-		char *MaxWindGust = "DATA: Current Wind Gust: ";
+		char *CurWindGust = "DATA: Current Wind Gust: ";
 		char *CurRain = "DATA: Current Rain: ";
 		//radMsgLog(PRI_STATUS, buf);
 
@@ -612,7 +631,7 @@ while (1)
 		else if (strstr(buf, Humidity))
 			{
 			PROC_DATA_ITEM(Humidity, buf,
-				weather_data.humidity, atoi);
+				weather_data.inHumidity, atoi);
 			}
 		else if (strstr(buf, WindDirection))
 			{
@@ -621,20 +640,18 @@ while (1)
 			}
 		else if (strstr(buf, CurWindSpeed))
 			{
-			/* FIXME: Value should be rounded */
 			PROC_DATA_ITEM(CurWindSpeed, buf,
-				weather_data.curwindspeed, atoi);
+				weather_data.curWindSpeed, atof);
 			}
-		else if (strstr(buf, MaxWindGust))
+		else if (strstr(buf, CurWindGust))
 			{
-			/* FIXME: Value should be rounded */
-			PROC_DATA_ITEM(MaxWindGust, buf,
-				weather_data.maxgust, atoi);
+			PROC_DATA_ITEM(CurWindGust, buf,
+				weather_data.maxGust, atof);
 			}
 		else if (strstr(buf, CurRain))
 			{
 			PROC_DATA_ITEM(CurRain, buf,
-				weather_data.currain, atoi);
+				weather_data.curRain, atoi);
 			}
 
 		memset(buf, 0, sizeof(buf));
