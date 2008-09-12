@@ -26,6 +26,36 @@
 #include <stdio.h>
 #endif
 
+int ReadToNextLine(int fd, char *buf, int bufsize)
+{
+int ret;
+int count;
+
+count = 0;
+while (count < bufsize)
+	{
+	ret = read(fd, buf, sizeof (char));
+
+	/* stop on error */
+	if (ret == -1)
+		{
+		break;
+		}
+
+	/* stop on newline */
+	if (*buf == '\n')
+		{
+		break;
+		}
+
+	/* next */
+	buf++;
+	count++;
+	}
+
+return ret;
+}
+
 int
 main()
 {
@@ -53,11 +83,14 @@ if (ret == -1)
 	return EXIT_FAILURE;
 	}
 
-ret = read(fd, buf, sizeof(buf));
+memset(buf, 0, sizeof (buf));
+ret = ReadToNextLine(fd, buf, sizeof (buf));
 while (ret > 0)
 	{
-	write(STDOUT_FILENO, buf, ret);
-	ret = read(fd, buf, sizeof(buf));
+	write(STDOUT_FILENO, buf, strlen(buf));
+
+	memset(buf, 0, sizeof (buf));
+	ret = ReadToNextLine(fd, buf, sizeof (buf));
 	}
 
 close(fd);
