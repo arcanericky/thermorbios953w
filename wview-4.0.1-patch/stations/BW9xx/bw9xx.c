@@ -63,30 +63,34 @@ struct bw9xx_data
 	int dataready;
 	};
 
+static struct bw9xx_data weather_data;
+
+
 static char * getData(char *monitorstring, char *datastring)
 {
 char *s;
 char *space;
 
+// advance to end of description text
 s = datastring + strlen(monitorstring);
 
+// NULL if getting back a dash
+// FIXME: Make sure callers can handle this.  Perhaps bring wview offline?
 if (*s == '-')
 	{
 	return NULL;
 	}
 
-space = (strchr(s, ' '));
-if (space == NULL)
-	{
-	return s;
-	}
 
-*space = '\0';
+// advance to the space between the data and the units and null out if found
+space = (strchr(s, ' '));
+if (space != NULL)
+	{
+	*space = '\0';
+	}
 
 return s;
 }
-
-static struct bw9xx_data weather_data;
 
 float MmToInches(short mm)
 {
@@ -193,6 +197,8 @@ int stationInit
     // initialize the medium abstraction based on user configuration
     // we just set the fd to -1 so it is not used for select - 
     // we won't really open a serial channel...
+    // FIXME: This may be key to getting rid of the pthread as the comment
+    // hints at setting it will get a select() ran.
     work->medium.fd = -1;
 
     // grab the station configuration now
@@ -278,13 +284,15 @@ int stationInit
 
 	// never send rain data stored on station at startup,
 	// rain data should only be accumulated while wview runs
+	pthread_mutex_lock(&weather_data.locker);
 	weather_data.prevRain = weather_data.curRain;
+	pthread_mutex_unlock(&weather_data.locker);
 
     // do the initial GetReadings now
     // populate the LOOP structure
     storeLoopPkt(&work->loopPkt);
 
-    // we can indicate successful completion here!
+    // indicate successful completion
     radProcessEventsSend (NULL, STATION_INIT_COMPLETE_EVENT, 0);
 
     return OK;
@@ -428,6 +436,35 @@ void stationIFTimerExpiry (WVIEWD_WORK *work)
 
 
 //  ... ----- static (local) methods ----- ...
+int ReadToNextLine(int fd, char *buf, int bufsize)
+{
+int ret;
+int count;
+
+count = 0;
+while (count < bufsize)
+	{
+	ret = read(fd, buf, sizeof (char));
+
+	/* stop on error */
+	if (ret == -1)
+		{
+		break;
+		}
+
+	/* stop on newline */
+	if (*buf == '\n')
+		{
+		break;
+		}
+
+	/* next */
+	buf++;
+	count++;
+	}
+
+return ret;
+}
 
 static int storeLoopPkt (LOOP_PKT *dest)
 {
@@ -453,14 +490,19 @@ dest->windSpeed = (USHORT) (KmhToMph(weather_data.curWindSpeed) + 0.5);
 // Add 0.5 to round speed
 dest->windGust = (USHORT) (KmhToMph(weather_data.maxGust) + 0.5);
 
-#if 0
 radMsgLog (PRI_STATUS, "curRain: %d, prevRain: %d",
 	weather_data.curRain, weather_data.prevRain);
-#endif
+
+// If current rainfall on station is reset, handle it */
+if (weather_data.prevRain > weather_data.curRain)
+	{
+	radMsgLog(PRI_STATUS, "Resetting prevRain which was %d to curRain"
+		"which is %d", weather_data.prevRain, weather_data.curRain);
+	weather_data.prevRain = weather_data.curRain;
+	}
 
 dest->sampleRain = MmToInches(weather_data.curRain -
 	weather_data.prevRain);
-
 radMsgLog(PRI_STATUS, "Delivering %f rain", dest->sampleRain);
 
 weather_data.prevRain = weather_data.curRain;
@@ -471,14 +513,9 @@ sensorAccumAddSample(bw9xxWorkData.rainRateAccumulator, nowTime,
 radMsgLog(PRI_STATUS, "Rain rate: %f",
 	sensorAccumGetTotal(bw9xxWorkData.rainRateAccumulator) * 3);
 
-/* The following should activate rain rate when un'if'ed.
- * Not activiting for now until the rate that is logged above looks
- * good
- */
-#if 0
+// retrieve rain rate from the accumulator
 dest->rainRate = sensorAccumGetTotal(bw9xxWorkData.rainRateAccumulator);
 dest->rainRate *= 3;      // Accumulator holds 20 minutes
-#endif
 
 // calculate station pressure by giving a negative elevation 
 dest->stationPressure = wvutilsConvertSPToSLP(dest->barometer, 
@@ -488,35 +525,27 @@ dest->stationPressure = wvutilsConvertSPToSLP(dest->barometer,
 dest->altimeter = wvutilsConvertSPToAltimeter(dest->stationPressure,
 	(float)bw9xxWorkData.elevation);
 
-// FIXME: For the BW9xx, I don't see why this can't be calculated at some
-// point.  This is being experimented with above, thanks to the code
-// in WMR918.
-dest->rainRate= 0;
-
 // clear the ones we don't support
 dest->sampleET = 0;
 dest->radiation = 0;
 dest->UV = 0;
 dest->windGustDir= 0;
 
-// If outHumidity is set to 0, it causes a bug where updating the sql database
-// will fail (if sql is enabled), as it sets the dewpoint to "nan".  I guess
-// wview hasn't come across a station that doesn't support outside humidity?
-// Set outHumidity to 1 to prevent this.
-// The exact offending insert is:
+// If outHumidity is set to 0, it causes a bug where updating the
+// sql database will fail (if sql is enabled), as it sets the
+// dewpoint to "nan".  I guess wview hasn't come across a station
+// that doesn't support outside humidity?  Set outHumidity to 1 to
+// prevent this.  The command that gave an error (at Dewpoint = nan)
+// is:
 // INSERT INTO archive SET RecordTime = "2008-09-10 10:10:00",ArcInt = 5,OutTemp = 76.300003,HiOutTemp = 76.300003,LowOutTemp = 76.300003,InTemp = 75.199997,Barometer = 30.002001,OutHumid = 0.000000,InHumid = 32.000000,Rain = 0.000000,HiRainRate = 0.000000,WindSpeed = 0.000000,HiWindSpeed = 2.000000,WindDir = 112,HiWindDir = 0,Dewpoint = nan,WindChill = 76.300003,HeatIndex = 74.153137
 dest->outHumidity = 1;
 
-// now calculate a few
-
+// calculate wind chill
 dest->windchill = wvutilsCalculateWindChill(dest->outTemp, 
 	(float)dest->windSpeed);
 
 /* The BW9xx series doesn't actually have an outside humidity
  * sensor, making dew point and heat index calculations invalid.
- * Leaving here for now until it is determined if these should
- * really be set to a default value (0?) or just ignored
- * on the display.
  */
 #if 0
 dest->dewpoint = wvutilsCalculateDewpoint(dest->outTemp, 
@@ -524,6 +553,7 @@ dest->dewpoint = wvutilsCalculateDewpoint(dest->outTemp,
 dest->heatindex = wvutilsCalculateHeatIndex(dest->outTemp, 
 	(float)dest->outHumidity);
 #endif
+
 dest->dewpoint = 0;
 dest->heatindex = 0;
 
@@ -573,14 +603,8 @@ while (1)
 		}
 
 	memset(buf, 0, sizeof(buf));
+	ret = ReadToNextLine(fd, buf, sizeof(buf));
 
-	/* FIXME: This read and the read in the loop below are the cheap
-	 *			way out.  Network read should either be double
-	 *			buffered, or socket changed to a stream and read
-	 *			until a newline, or read a byte at a time until
-	 *			a newline is hit.  This gets us by for now, change later.
-	 */
-	ret = read(fd, buf, sizeof(buf));
 	while (ret > 0)
 		{
 		char *Date = "DATA: Date: ";
@@ -592,6 +616,7 @@ while (1)
 		char *CurWindSpeed = "DATA: Current Wind Speed: ";
 		char *CurWindGust = "DATA: Current Wind Gust: ";
 		char *CurRain = "DATA: Current Rain: ";
+
 		//radMsgLog(PRI_STATUS, buf);
 
 #define PROC_DATA_ITEM(searchstring, buffer, dataelement, conversion) \
@@ -608,6 +633,12 @@ while (1)
 
 		if (strstr(buf, Date))
 			{
+			/* FIXME: This code assumes the outside sensors are
+			 * connected to and communicating with inside station.
+			 * If it is not, there will be invalid readings.
+			 * Code should probably wait unti it receives all
+			 * good readings so it doesn't cause trash weather data.
+			 */
 			pthread_mutex_lock(&weather_data.locker);
 			weather_data.dataready++;
 			pthread_mutex_unlock(&weather_data.locker);
@@ -650,12 +681,13 @@ while (1)
 			}
 		else if (strstr(buf, CurRain))
 			{
+			radMsgLog(PRI_STATUS, buf);
 			PROC_DATA_ITEM(CurRain, buf,
 				weather_data.curRain, atoi);
 			}
 
 		memset(buf, 0, sizeof(buf));
-		ret = read(fd, buf, sizeof(buf));
+		ret = ReadToNextLine(fd, buf, sizeof(buf));
 		}
 
 	close(fd);
