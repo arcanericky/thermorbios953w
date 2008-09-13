@@ -54,6 +54,7 @@ struct ws_prog_options
 	char *play_data_file;
 
 	int debug_lvl;
+	int data_csv;
 
 	int out_temp_adj;
 	int in_temp_adj;
@@ -67,19 +68,27 @@ struct ws_prog_options
 	char *current_txt;
 
 	char *data_prefix;
+	char *data_separator;
+	char *unit_separator;
 
 	char *time_txt;
 	char *time_suffix_txt;
+
 	char *date_txt;
 	char *date_suffix_txt;
+
 	char *in_temp_txt;
 	char *in_temp_suffix_txt;
+
 	char *out_temp_txt;
 	char *out_temp_suffix_txt;
+
 	char *rain_txt;
 	char *rain_suffix_txt;
+
 	char *humidity_txt;
 	char *humidity_suffix_txt;
+
 	char *pressure_txt;
 	char *pressure_suffix_txt;
 
@@ -93,7 +102,10 @@ struct ws_prog_options
 	char *wind_gust_suffix_txt;
 
 	char *forecast_txt;
+	char *forecast_suffix_txt;
+
 	char *trend_txt;
+	char *trend_suffix_txt;
 
 	char *wind_chill_txt;
 	char *wind_chill_suffix_txt;

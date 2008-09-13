@@ -148,6 +148,7 @@ enum options
 	foreground,
 	fuzzy,
 	playback_rate,
+	data_csv,
 	help
 	};
 
@@ -211,6 +212,7 @@ static struct option long_options[] = {
 	{ "foreground",				no_argument,       0, foreground },
 	{ "fuzzy",					no_argument,       0, fuzzy },
 	{ "playback-rate",			required_argument, 0, playback_rate },
+	{ "data-csv",				no_argument,       0, data_csv },
 	{ "help",					no_argument,       0, help },
 	{ 0, 0, 0, 0 }
 	};
@@ -230,47 +232,63 @@ prog_options.pressure_adj = 0;
 prog_options.unix_path = UNIX_PATH;
 
 prog_options.device = "/dev/hiddev0";
+
 prog_options.max_txt = "Maximum ";
 prog_options.min_txt = "Minimum ";
 prog_options.current_txt = "Current ";
 
 prog_options.data_prefix = "DATA: ";
-prog_options.time_txt = "Time: ";
+
+prog_options.data_separator = ": ";
+prog_options.unit_separator = " ";
+
+prog_options.time_txt = "Time";
 prog_options.time_suffix_txt = "";
-prog_options.date_txt = "Date: ";
+
+prog_options.date_txt = "Date";
 prog_options.date_suffix_txt = "";
 
-prog_options.in_temp_txt = "Inside Temperature: ";
-prog_options.in_temp_suffix_txt = " C";
-prog_options.out_temp_txt = "Outside Temperature: ";
-prog_options.out_temp_suffix_txt = " C";
-prog_options.rain_txt = "Rain: ";
-prog_options.rain_suffix_txt = " mm";
-prog_options.humidity_txt = "Humidity: ";
-prog_options.humidity_suffix_txt = " %";
-prog_options.pressure_txt = "Pressure: ";
-prog_options.pressure_suffix_txt = " mb";
+prog_options.in_temp_txt = "Inside Temperature";
+prog_options.in_temp_suffix_txt = "C";
 
-prog_options.wind_dir_txt = "Wind Direction: ";
-prog_options.wind_dir_suffix_txt = " degrees";
-prog_options.wind_speed_txt = "Wind Speed: ";
-prog_options.wind_speed_suffix_txt = " km/h";
-prog_options.wind_gust_txt = "Wind Gust: ";
-prog_options.wind_gust_suffix_txt = " km/h";
+prog_options.out_temp_txt = "Outside Temperature";
+prog_options.out_temp_suffix_txt = "C";
 
-prog_options.forecast_txt = "Forecast: ";
-prog_options.trend_txt = "Trend: ";
+prog_options.rain_txt = "Rain";
+prog_options.rain_suffix_txt = "mm";
 
-prog_options.wind_chill_txt = "Wind Chill: ";
-prog_options.wind_chill_suffix_txt = " C";
+prog_options.humidity_txt = "Humidity";
+prog_options.humidity_suffix_txt = "%";
 
-prog_options.unknown1_txt = "Unknown: ";
-prog_options.unknown1_suffix_txt = " ?";
+prog_options.pressure_txt = "Pressure";
+prog_options.pressure_suffix_txt = "mb";
+
+prog_options.wind_dir_txt = "Wind Direction";
+prog_options.wind_dir_suffix_txt = "degrees";
+
+prog_options.wind_speed_txt = "Wind Speed";
+prog_options.wind_speed_suffix_txt = "km/h";
+
+prog_options.wind_gust_txt = "Wind Gust";
+prog_options.wind_gust_suffix_txt = "km/h";
+
+prog_options.forecast_txt = "Forecast";
+prog_options.forecast_suffix_txt = "";
+
+prog_options.trend_txt = "Trend";
+prog_options.trend_suffix_txt = "";
+
+prog_options.wind_chill_txt = "Wind Chill";
+prog_options.wind_chill_suffix_txt = "C";
+
+prog_options.unknown1_txt = "Unknown";
+prog_options.unknown1_suffix_txt = "?";
 
 prog_options.no_reading_txt = "-";
 prog_options.foreground = 0;
 prog_options.fuzzy = 0;
 prog_options.playback_rate = 1;
+prog_options.data_csv = 0;
 
 prog_options.play_data_file = NULL;
 prog_options.record_data_file = NULL;
@@ -420,6 +438,12 @@ while (1)
 			break;
 		case play_data_file:
 			prog_options.play_data_file = optarg;
+			break;
+		case data_csv:
+			prog_options.data_csv = 1;
+			prog_options.data_prefix="";
+			prog_options.data_separator=",";
+			prog_options.unit_separator=",";
 			break;
 		case '?':
 			fprintf(stderr, "Use --help for more information.\n");

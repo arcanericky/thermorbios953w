@@ -3956,7 +3956,8 @@ done
 
 
 
-for ac_header in fcntl.h memory.h stdlib.h sys/ioctl.h unistd.h signal.h getopt.h stdarg.h stdio.h ctype.h sys/stat.h sys/un.h sys/types.h
+
+for ac_header in fcntl.h memory.h stdlib.h sys/ioctl.h unistd.h signal.h getopt.h stdarg.h stdio.h ctype.h sys/stat.h sys/un.h sys/types.h time.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then

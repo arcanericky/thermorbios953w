@@ -26,6 +26,10 @@
 #include <stdio.h>
 #endif
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include "list.h"
 #include "select.h"
 #include "common.h"
