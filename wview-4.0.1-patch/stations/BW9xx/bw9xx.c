@@ -45,85 +45,125 @@
 static BW9XX_IF_DATA bw9xxWorkData;
 static void (*ArchiveIndicator) (ARCHIVE_RECORD *newRecord);
 static int storeLoopPkt (LOOP_PKT *dest);
-static void *readerLoop(void *);
+static void *readerThread(void *);
 
+static float MmToInches(int);
+static float CelsiusToFahrenheit(float);
+static float MillibarsToInches(float);
+static float KmhToMph(float);
+
+// Data from the bw9xx that is shared between the thread, which
+// populates this structure, and the stationGetReadings() "callback",
+// whichs hands off the data to the main program.
+//
+// Adding an element to monitor requires additions to three places.
+// 		1. add a variable to update in bw9xx_data
+// 		2. add how to process it in the datums array below
+// 		3. pass the data back in storeLoopPkt()
+// An element can be added to monitor without passing it back
+// to the rest of wviewd (meaning you can skip step 3).
 struct bw9xx_data
 	{
 	float inTemp;
 	float outTemp;
 	float barometer;
-	short inHumidity;
-	short direction;
+	int inHumidity;
+	int direction;
 	float curWindSpeed;
 	float maxGust;
-	short curRain;
-	short prevRain;
+	int curRain;
+	int prevRain;
 
-	pthread_mutex_t locker;
-	int dataready;
+	pthread_mutex_t locker;		// mutex to use when accessing data
+	int dataready;				// when 1, data ready to be read
 	};
 
+struct ws9xxd_dataline
+	{
+	char *desc;
+	void *value;
+
+	void (*processor)(char *, struct ws9xxd_dataline *);
+	void (*stringtoval)(const char *, void *);
+	void (*prelog)(char *, struct ws9xxd_dataline *);
+	void (*postlog)(char *, struct ws9xxd_dataline *);
+	};
+
+static void processor_cb(char *, struct ws9xxd_dataline *);
+static void prelog_cb(char *, struct ws9xxd_dataline *);
+static void postlog_int_cb(char *, struct ws9xxd_dataline *);
+static void postlog_float_cb(char *, struct ws9xxd_dataline *);
+static void atof_cb(const char *, void *);
+static void atoi_cb(const char *, void *);
+static void increment_cb(const char *, void *);
+
 static struct bw9xx_data weather_data;
-
-
-static char * getData(char *monitorstring, char *datastring)
+static struct ws9xxd_dataline datums[] =
 {
-char *s;
-char *space;
-
-// advance to end of description text
-s = datastring + strlen(monitorstring);
-
-// NULL if getting back a dash
-// FIXME: Make sure callers can handle this.  Perhaps bring wview offline?
-if (*s == '-')
 	{
-	return NULL;
-	}
+	"DATA: Current Outside Temperature: ",	// Description to find
+		&(weather_data.outTemp),			// Value to change
+		processor_cb,						// callback for change
+											// and loggin
+		atof_cb,							// string to type function
+		prelog_cb,							// log before processing
+		postlog_float_cb					// log after processing
+	},
 
-
-// advance to the space between the data and the units and null out if found
-space = (strchr(s, ' '));
-if (space != NULL)
 	{
-	*space = '\0';
+	"DATA: Date: ",
+		&(weather_data.dataready),
+		processor_cb, increment_cb, NULL, NULL
+	},
+
+	{
+	"DATA: Current Pressure: ",
+		&(weather_data.barometer),
+		processor_cb, atof_cb, NULL, NULL
+	},
+
+	{
+	"DATA: Current Humidity: ",
+		&(weather_data.inHumidity),
+		processor_cb, atoi_cb, NULL, NULL
+	},
+
+	{
+	"DATA: Current Inside Temperature: ",
+		&(weather_data.inTemp),
+		processor_cb, atof_cb, NULL, NULL
+	},
+
+	{
+	"DATA: Wind Direction: ",
+		&(weather_data.direction),
+		processor_cb, atoi_cb, NULL, NULL
+	},
+
+	{
+	"DATA: Current Wind Speed: ",
+		&(weather_data.curWindSpeed),
+		processor_cb, atof_cb, NULL, NULL
+	},
+
+	{
+	"DATA: Current Wind Gust: ",
+		&(weather_data.maxGust),
+		processor_cb, atof_cb, NULL, NULL
+	},
+
+	{
+	"DATA: Current Rain: ",
+		&(weather_data.curRain),
+		processor_cb, atoi_cb, prelog_cb, postlog_int_cb
+	},
+
+	// keep last entry NULL - it's how the loop detects the end
+	{
+	NULL,
+		NULL, NULL, NULL, NULL, NULL
 	}
-
-return s;
-}
-
-float MmToInches(short mm)
-{
-float ret;
-ret = (float) mm * (float) .04;
-return ret;
-}
-
-float CelsiusToFahrenheit(float c)
-{
-float ret;
-
-ret = (float) 9.0 / (float) 5.0;
-ret = ret * c;
-ret = ret + 32.0;
-
-return ret;
-}
-
-float MillibarsToInches(float mb)
-{
-return mb * .02953;
-}
-
-float KmhToMph(float kmh)
-{
-float ret;
-
-ret = (float) kmh / (float) 1.61;
-
-return ret;
-}
-
+};
 
 ////////////****////****  S T A T I O N   A P I  ****////****////////////
 /////  Must be provided by each supported wview station interface  //////
@@ -265,7 +305,7 @@ int stationInit
     // but I haven't researched how, and implemented it yet.
 	pthread_mutex_init(&weather_data.locker, NULL);
 	weather_data.dataready = -1;
-	pthread_create(&t, NULL, readerLoop, NULL);
+	pthread_create(&t, NULL, readerThread, NULL);
 
 	// Loop until first round of data is ready from reader thread
 	// This could take up from one to two minutes
@@ -436,6 +476,9 @@ void stationIFTimerExpiry (WVIEWD_WORK *work)
 
 
 //  ... ----- static (local) methods ----- ...
+
+// reads from a file descriptor, a character at a time, placing
+// the data in a buffer until a newline is reached
 int ReadToNextLine(int fd, char *buf, int bufsize)
 {
 int ret;
@@ -466,6 +509,8 @@ while (count < bufsize)
 return ret;
 }
 
+// if data is ready, convert the data from bw9xx specific readings
+// to wviewd readings
 static int storeLoopPkt (LOOP_PKT *dest)
 {
 time_t nowTime = time(NULL);
@@ -475,21 +520,23 @@ pthread_mutex_lock(&weather_data.locker);
 if (weather_data.dataready < 1)
 	{
 	pthread_mutex_unlock(&weather_data.locker);
+
+	// return not ready to process
 	return 0;
 	}
 
+// these readings are straightforward
 dest->barometer = MillibarsToInches(weather_data.barometer);
 dest->outTemp = CelsiusToFahrenheit(weather_data.outTemp);
 dest->inTemp = CelsiusToFahrenheit(weather_data.inTemp);
 dest->inHumidity = weather_data.inHumidity;
 dest->windDir = weather_data.direction;
 
-// Add 0.5 to round speed
+// these readings need to be rounded
 dest->windSpeed = (USHORT) (KmhToMph(weather_data.curWindSpeed) + 0.5);
-
-// Add 0.5 to round speed
 dest->windGust = (USHORT) (KmhToMph(weather_data.maxGust) + 0.5);
 
+// Rainfall must be calculated
 radMsgLog (PRI_STATUS, "curRain: %d, prevRain: %d",
 	weather_data.curRain, weather_data.prevRain);
 
@@ -503,11 +550,12 @@ if (weather_data.prevRain > weather_data.curRain)
 
 dest->sampleRain = MmToInches(weather_data.curRain -
 	weather_data.prevRain);
+
 radMsgLog(PRI_STATUS, "Delivering %f rain", dest->sampleRain);
 
 weather_data.prevRain = weather_data.curRain;
 
-// Rain Rate
+// rain rate must be accumulated and calculated
 sensorAccumAddSample(bw9xxWorkData.rainRateAccumulator, nowTime,
 	dest->sampleRain);
 radMsgLog(PRI_STATUS, "Rain rate: %f",
@@ -525,11 +573,21 @@ dest->stationPressure = wvutilsConvertSPToSLP(dest->barometer,
 dest->altimeter = wvutilsConvertSPToAltimeter(dest->stationPressure,
 	(float)bw9xxWorkData.elevation);
 
-// clear the ones we don't support
+// calculate wind chill
+dest->windchill = wvutilsCalculateWindChill(dest->outTemp, 
+	(float)dest->windSpeed);
+
+// the following are not supported, but are required to be set
 dest->sampleET = 0;
 dest->radiation = 0;
 dest->UV = 0;
 dest->windGustDir= 0;
+
+/* The BW9xx series doesn't actually have an outside humidity
+ * sensor, making dew point and heat index calculations invalid.
+ */
+dest->dewpoint = 0;
+dest->heatindex = 0;
 
 // If outHumidity is set to 0, it causes a bug where updating the
 // sql database will fail (if sql is enabled), as it sets the
@@ -540,35 +598,142 @@ dest->windGustDir= 0;
 // INSERT INTO archive SET RecordTime = "2008-09-10 10:10:00",ArcInt = 5,OutTemp = 76.300003,HiOutTemp = 76.300003,LowOutTemp = 76.300003,InTemp = 75.199997,Barometer = 30.002001,OutHumid = 0.000000,InHumid = 32.000000,Rain = 0.000000,HiRainRate = 0.000000,WindSpeed = 0.000000,HiWindSpeed = 2.000000,WindDir = 112,HiWindDir = 0,Dewpoint = nan,WindChill = 76.300003,HeatIndex = 74.153137
 dest->outHumidity = 1;
 
-// calculate wind chill
-dest->windchill = wvutilsCalculateWindChill(dest->outTemp, 
-	(float)dest->windSpeed);
-
-/* The BW9xx series doesn't actually have an outside humidity
- * sensor, making dew point and heat index calculations invalid.
- */
-#if 0
-dest->dewpoint = wvutilsCalculateDewpoint(dest->outTemp, 
-	(float)dest->outHumidity);
-dest->heatindex = wvutilsCalculateHeatIndex(dest->outTemp, 
-	(float)dest->outHumidity);
-#endif
-
-dest->dewpoint = 0;
-dest->heatindex = 0;
-
 /* Decrement dataready since it has been used */
 weather_data.dataready = 0;;
 pthread_mutex_unlock(&weather_data.locker);
 
+// return that data was processed
 return 1;
 }
 
-void *readerLoop(void *notused)
+// Parse and return data value coming from ws9xxd
+static char *getData(char *monitorstring, char *datastring)
 {
-char path[] = "/tmp/wsd";
+char *s;
+char *space;
+
+// advance to end of description text
+s = datastring + strlen(monitorstring);
+
+// NULL if getting back a dash
+// FIXME: Make sure callers can handle this.  Perhaps bring wview offline?
+if (*s == '-')
+	{
+	return NULL;
+	}
+
+
+// advance to the space between the data and the units and null out if found
+space = (strchr(s, ' '));
+if (space != NULL)
+	{
+	*space = '\0';
+	}
+
+return s;
+}
+
+// Convert mm (int) to inches (float)
+static float MmToInches(int mm)
+{
+float ret;
+ret = (float) mm * (float) .04;
+return ret;
+}
+
+// Convert Celsius to Fahrenheight
+static float CelsiusToFahrenheit(float c)
+{
+float ret;
+
+ret = (float) 9.0 / (float) 5.0;
+ret = ret * c;
+ret = ret + 32.0;
+
+return ret;
+}
+
+// Convert millibars to inches
+static float MillibarsToInches(float mb)
+{
+return mb * .02953;
+}
+
+// Convert kilometers per hour to miles per hour
+static float KmhToMph(float kmh)
+{
+float ret;
+
+ret = (float) kmh / (float) 1.61;
+
+return ret;
+}
+
+static void processor_cb(char *buf, struct ws9xxd_dataline *d)
+{
+char *s;
+
+if (d->prelog)
+	{
+	(*(d->prelog))(buf, d);
+	}
+
+s = getData(d->desc, buf);
+if (s != NULL)
+	{
+	if (d->stringtoval != NULL)
+		{
+		pthread_mutex_lock(&weather_data.locker);
+		(*(d->stringtoval))(s, d->value);
+		pthread_mutex_unlock(&weather_data.locker);
+		}
+	}
+
+if (d->postlog)
+	{
+	(*(d->postlog))(buf, d);
+	}
+
+}
+
+static void prelog_cb(char *buf, struct ws9xxd_dataline *d)
+{
+radMsgLog(PRI_STATUS, buf);
+}
+
+static void postlog_int_cb(char *buf, struct ws9xxd_dataline *d)
+{
+radMsgLog(PRI_STATUS, "Value is: %d", *((int *) d->value));
+}
+
+static void postlog_float_cb(char *buf, struct ws9xxd_dataline *d)
+{
+radMsgLog(PRI_STATUS, "Value is: %f", *((float *) d->value));
+}
+
+static void atof_cb(const char *s, void *value)
+{
+*((float *) value) = atof(s);
+}
+
+static void atoi_cb(const char *s, void *value)
+{
+*((int *) value) = atoi(s);
+}
+
+static void increment_cb(const char *s, void *value)
+{
+*((int *) value) = *((int *) value) + 1;
+}
+
+// Used as a thread to monitor incoming data from ws9xxd and load it
+// as it is reeived, to the global "struct bw9xx_data weather_data" 
+static void *readerThread(void *notused)
+{
+char *path = "/tmp/wsd";
 char buf[100];
 struct sockaddr_un sun;
+struct ws9xxd_dataline *wd;
 int fd;
 int ret;
 
@@ -604,86 +769,21 @@ while (1)
 
 	memset(buf, 0, sizeof(buf));
 	ret = ReadToNextLine(fd, buf, sizeof(buf));
-
 	while (ret > 0)
 		{
-		char *Date = "DATA: Date: ";
-		char *Barometer = "DATA: Current Pressure: ";
-		char *Humidity = "DATA: Current Humidity: ";
-		char *InsideCurTempText = "DATA: Current Inside Temperature: ";
-		char *OutsideCurTempText = "DATA: Current Outside Temperature: ";
-		char *WindDirection = "DATA: Wind Direction: ";
-		char *CurWindSpeed = "DATA: Current Wind Speed: ";
-		char *CurWindGust = "DATA: Current Wind Gust: ";
-		char *CurRain = "DATA: Current Rain: ";
-
-		//radMsgLog(PRI_STATUS, buf);
-
-#define PROC_DATA_ITEM(searchstring, buffer, dataelement, conversion) \
-	{ \
-	char *s; \
-	s = getData(searchstring, buffer); \
-	if (s != NULL) \
-		{ \
-		pthread_mutex_lock(&weather_data.locker); \
-		dataelement = conversion(s); \
-		pthread_mutex_unlock(&weather_data.locker); \
-		} \
-	}
-
-		if (strstr(buf, Date))
+		// init to beginning of data to monitor array
+		wd = datums;
+		while (wd->desc != NULL)
 			{
-			/* FIXME: This code assumes the outside sensors are
-			 * connected to and communicating with inside station.
-			 * If it is not, there will be invalid readings.
-			 * Code should probably wait unti it receives all
-			 * good readings so it doesn't cause trash weather data.
-			 */
-			pthread_mutex_lock(&weather_data.locker);
-			weather_data.dataready++;
-			pthread_mutex_unlock(&weather_data.locker);
-			}
-		if (strstr(buf, InsideCurTempText))
-			{
-			PROC_DATA_ITEM(InsideCurTempText, buf,
-				weather_data.inTemp, atof);
-			}
-		else if (strstr(buf, OutsideCurTempText))
-			{
-			radMsgLog(PRI_STATUS, buf);
-			PROC_DATA_ITEM(OutsideCurTempText, buf,
-				weather_data.outTemp, atof);
-			}
-		else if (strstr(buf, Barometer))
-			{
-			PROC_DATA_ITEM(Barometer, buf,
-				weather_data.barometer, atof);
-			}
-		else if (strstr(buf, Humidity))
-			{
-			PROC_DATA_ITEM(Humidity, buf,
-				weather_data.inHumidity, atoi);
-			}
-		else if (strstr(buf, WindDirection))
-			{
-			PROC_DATA_ITEM(WindDirection, buf,
-				weather_data.direction, atoi);
-			}
-		else if (strstr(buf, CurWindSpeed))
-			{
-			PROC_DATA_ITEM(CurWindSpeed, buf,
-				weather_data.curWindSpeed, atof);
-			}
-		else if (strstr(buf, CurWindGust))
-			{
-			PROC_DATA_ITEM(CurWindGust, buf,
-				weather_data.maxGust, atof);
-			}
-		else if (strstr(buf, CurRain))
-			{
-			radMsgLog(PRI_STATUS, buf);
-			PROC_DATA_ITEM(CurRain, buf,
-				weather_data.curRain, atoi);
+			// if data from ws9xxd and monitor description match
+			// then process
+			if (strstr(buf, wd->desc))
+				{
+				// process ws9xxd data
+				(*(wd->processor))(buf, wd);
+				}
+				
+			wd++;
 			}
 
 		memset(buf, 0, sizeof(buf));
