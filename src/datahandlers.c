@@ -25,7 +25,7 @@ if (prog_options.debug_lvl < 4)
 	return 0;
 	}
 
-fprintf(prog_options.output_fs, "IN  ");
+fprintf(prog_options.output_fs, "%s", "IN  ");
 
 for (x = 0; x < NUM_DATA; x++)
 	{

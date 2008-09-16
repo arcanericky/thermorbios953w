@@ -4,6 +4,7 @@ noinst_HEADERS = bw953.h \
 thermorwsd.h \
 datahandlers.h \
 datadisplay.h \
+datadispcsv.h \
 common.h \
 select.h \
 debug.h \
@@ -14,6 +15,7 @@ ws9xxd_SOURCES = bw953.c \
 thermorwsd.c \
 datahandlers.c \
 datadisplay.c \
+datadispcsv.c \
 util.c \
 select.c \
 debug.c \

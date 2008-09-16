@@ -33,6 +33,114 @@
 #define DATA_MAX				0x02
 #define DATA_CURRENT			0x03
 
+/* Default Text */
+#define DEF_MAX_TXT					"Maximum "
+#define DEF_MIN_TXT					"Minimum "
+#define DEF_CUR_TXT					"Current "
+
+#define DEF_DATA_PREFIX_TXT			"DATA: "
+#define DEF_DATA_SEPARATOR_TXT		": "
+#define DEF_UNIT_SEPARATOR_TXT		" "
+#define DEF_NO_READING_TXT			"-"
+
+#define DEF_TIME_TXT				"Time"
+#define DEF_TIME_SUFFIX_TXT			""
+
+#define DEF_DATE_TXT				"Date"
+#define DEF_DATE_SUFFIX_TXT			""
+
+#define DEF_IN_TEMP_TXT				"Inside Temperature"
+#define DEF_IN_TEMP_SUFFIX_TXT		"C"
+
+#define DEF_OUT_TEMP_TXT			"Outside Temperature"
+#define DEF_OUT_TEMP_SUFFIX_TXT		"C"
+
+#define DEF_RAIN_TXT				"Rain"
+#define DEF_RAIN_SUFFIX_TXT			"mm"
+
+#define DEF_HUMIDITY_TXT			"Humidity"
+#define DEF_HUMIDITY_SUFFIX_TXT		"%"
+
+#define DEF_PRESSURE_TXT			"Pressure"
+#define DEF_PRESSURE_SUFFIX_TXT		"mb"
+
+#define DEF_WIND_DIR_TXT			"Wind Direction"
+#define DEF_WIND_DIR_SUFFIX_TXT		"degrees"
+
+#define DEF_WIND_SPEED_TXT			"Wind Speed"
+#define DEF_WIND_SPEED_SUFFIX_TXT	"kmh"
+
+#define DEF_WIND_GUST_TXT			"Wind Gust"
+#define DEF_WIND_GUST_SUFFIX_TXT	"kmh"
+
+#define DEF_FORECAST_TXT			"Forecast"
+#define DEF_FORECAST_SUFFIX_TXT		""
+
+#define DEF_TREND_TXT				"Trend"
+#define DEF_TREND_SUFFIX_TXT		""
+
+#define DEF_WIND_CHILL_TXT			"Wind Chill"
+#define DEF_WIND_CHILL_SUFFIX_TXT	"C"
+
+#define DEF_UNKNOWN1_TXT			"Unknown"
+#define DEF_UNKNOWN1_SUFFIX_TXT		"?"
+
+enum DEF_OPTIONS_TXT
+	{
+	FLD_MAX,
+	FLD_MIN,
+	FLD_CUR,
+
+	FLD_DATA_PREFIX,
+	FLD_DATA_SEPARATOR,
+	FLD_UNIT_SEPARATOR,
+	FLD_NO_READING,
+
+	FLD_TIME,
+	FLD_TIME_SUFFIX,
+
+	FLD_DATE,
+	FLD_DATE_SUFFIX,
+
+	FLD_IN_TEMP,
+	FLD_IN_TEMP_SUFFIX,
+
+	FLD_OUT_TEMP,
+	FLD_OUT_TEMP_SUFFIX,
+
+	FLD_RAIN,
+	FLD_RAIN_SUFFIX,
+
+	FLD_HUMIDITY,
+	FLD_HUMIDITY_SUFFIX,
+
+	FLD_PRESSURE,
+	FLD_PRESSURE_SUFFIX,
+
+	FLD_WIND_DIR,
+	FLD_WIND_DIR_SUFFIX,
+
+	FLD_WIND_SPEED,
+	FLD_WIND_SPEED_SUFFIX,
+
+	FLD_WIND_GUST,
+	FLD_WIND_GUST_SUFFIX,
+
+	FLD_FORECAST,
+	FLD_FORECAST_SUFFIX,
+
+	FLD_TREND,
+	FLD_TREND_SUFFIX,
+
+	FLD_WIND_CHILL,
+	FLD_WIND_CHILL_SUFFIX,
+
+	FLD_UNKNOWN1,
+	FLD_UNKNOWN1_SUFFIX,
+
+	FLD_MAX_DEF_OPTION
+	};
+
 struct ws_prog_options
 	{
 	char *vendor;
@@ -62,58 +170,8 @@ struct ws_prog_options
 	
 	int rain_clicks_per_inch;
 
-	/* text output */
-	char *max_txt;
-	char *min_txt;
-	char *current_txt;
-
-	char *data_prefix;
-	char *data_separator;
-	char *unit_separator;
-
-	char *time_txt;
-	char *time_suffix_txt;
-
-	char *date_txt;
-	char *date_suffix_txt;
-
-	char *in_temp_txt;
-	char *in_temp_suffix_txt;
-
-	char *out_temp_txt;
-	char *out_temp_suffix_txt;
-
-	char *rain_txt;
-	char *rain_suffix_txt;
-
-	char *humidity_txt;
-	char *humidity_suffix_txt;
-
-	char *pressure_txt;
-	char *pressure_suffix_txt;
-
-	char *wind_dir_txt;
-	char *wind_dir_suffix_txt;
-
-	char *wind_speed_txt;
-	char *wind_speed_suffix_txt;
-
-	char *wind_gust_txt;
-	char *wind_gust_suffix_txt;
-
-	char *forecast_txt;
-	char *forecast_suffix_txt;
-
-	char *trend_txt;
-	char *trend_suffix_txt;
-
-	char *wind_chill_txt;
-	char *wind_chill_suffix_txt;
-
-	char *unknown1_txt;
-	char *unknown1_suffix_txt;
-
-	char *no_reading_txt;
+	char *output_txt[FLD_MAX_DEF_OPTION];
+	char *default_txt[FLD_MAX_DEF_OPTION];
 	};
 
 struct datum_handler

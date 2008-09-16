@@ -46,8 +46,9 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
 am_ws9xxd_OBJECTS = bw953.$(OBJEXT) thermorwsd.$(OBJEXT) \
-	datahandlers.$(OBJEXT) datadisplay.$(OBJEXT) util.$(OBJEXT) \
-	select.$(OBJEXT) debug.$(OBJEXT) servers.$(OBJEXT)
+	datahandlers.$(OBJEXT) datadisplay.$(OBJEXT) \
+	datadispcsv.$(OBJEXT) util.$(OBJEXT) select.$(OBJEXT) \
+	debug.$(OBJEXT) servers.$(OBJEXT)
 ws9xxd_OBJECTS = $(am_ws9xxd_OBJECTS)
 ws9xxd_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -151,6 +152,7 @@ noinst_HEADERS = bw953.h \
 thermorwsd.h \
 datahandlers.h \
 datadisplay.h \
+datadispcsv.h \
 common.h \
 select.h \
 debug.h \
@@ -161,6 +163,7 @@ ws9xxd_SOURCES = bw953.c \
 thermorwsd.c \
 datahandlers.c \
 datadisplay.c \
+datadispcsv.c \
 util.c \
 select.c \
 debug.c \
@@ -234,6 +237,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bw953.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/datadispcsv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/datadisplay.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/datahandlers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug.Po@am__quote@

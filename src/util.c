@@ -61,6 +61,48 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
+char *dyn_vsprintf(const char *fmt, va_list ap)
+{
+char *out;
+int len;
+int ret;
+
+len = vsnprintf(NULL, 0, fmt, ap);
+len++;
+
+out = xmalloc(len);
+if (out == NULL)
+	{
+	return NULL;
+	}
+
+ret = vsnprintf(out, len, fmt, ap);
+
+if (ret >= len)
+	{
+	xfree(out);
+	return NULL;
+	}
+
+return out;
+}
+
+/*-----------------------------------------------------------------*/
+char *dyn_sprintf(const char *fmt, ...)
+{
+va_list ap;
+char *out;
+
+va_start(ap, fmt);
+
+out = dyn_vsprintf(fmt, ap);
+
+va_end(ap);
+
+return out;
+}
+
+/*-----------------------------------------------------------------*/
 #ifndef RAW_DATA
 void
 datadump(char *header, void *logdata, int len)

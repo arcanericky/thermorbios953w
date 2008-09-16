@@ -30,6 +30,7 @@
 #include "bw953.h"
 #include "datahandlers.h"
 #include "datadisplay.h"
+#include "datadispcsv.h"
 
 #include "list.h"
 #include "select.h"
@@ -44,7 +45,8 @@ struct bw953_device_options dev_options;
 int usb_device_fd;
 
 /*-----------------------------------------------------------------*/
-int daemonize()
+static int
+daemonize()
 {
 pid_t pid;
 
@@ -81,7 +83,7 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
 set_dev_options()
 {
 set_bw953_dev_options();
@@ -90,40 +92,49 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
 set_prog_options(int argc, char *argv[])
 {
 int c;
+int txt_count;
 int option_index;
 enum options
 	{
 	inside_temp_adj,
 	outside_temp_adj,
 	pressure_adj,
+
 	device_name,
 	log_filename,
 	debug,
 
 	date_text,
 	date_suffix_text,
+
 	time_text,
 	time_suffix_text,
 
 	inside_temp_text,
 	inside_temp_suffix_text,
+
 	outside_temp_text,
 	outside_temp_suffix_text,
+
 	humidity_text,
 	humidity_suffix_text,
+
 	pressure_text,
 	pressure_suffix_text,
+
 	rain_text,
 	rain_suffix_text,
 
 	wind_dir_text,
 	wind_dir_suffix_text,
+
 	wind_speed_text,
 	wind_speed_suffix_text,
+
 	wind_gust_text,
 	wind_gust_suffix_text,
 
@@ -138,8 +149,8 @@ enum options
 
 	max_text,
 	min_text,
-
 	current_text,
+
 	unix_path,
 
 	record_data_file,
@@ -148,6 +159,7 @@ enum options
 	foreground,
 	fuzzy,
 	playback_rate,
+
 	data_csv,
 	help
 	};
@@ -228,63 +240,10 @@ prog_options.out_temp_adj = 0;
 prog_options.in_temp_adj = 0;
 prog_options.pressure_adj = 0;
 
-/* FIXME: Finish implementing user configurable connection */
 prog_options.unix_path = UNIX_PATH;
 
 prog_options.device = "/dev/hiddev0";
 
-prog_options.max_txt = "Maximum ";
-prog_options.min_txt = "Minimum ";
-prog_options.current_txt = "Current ";
-
-prog_options.data_prefix = "DATA: ";
-
-prog_options.data_separator = ": ";
-prog_options.unit_separator = " ";
-
-prog_options.time_txt = "Time";
-prog_options.time_suffix_txt = "";
-
-prog_options.date_txt = "Date";
-prog_options.date_suffix_txt = "";
-
-prog_options.in_temp_txt = "Inside Temperature";
-prog_options.in_temp_suffix_txt = "C";
-
-prog_options.out_temp_txt = "Outside Temperature";
-prog_options.out_temp_suffix_txt = "C";
-
-prog_options.rain_txt = "Rain";
-prog_options.rain_suffix_txt = "mm";
-
-prog_options.humidity_txt = "Humidity";
-prog_options.humidity_suffix_txt = "%";
-
-prog_options.pressure_txt = "Pressure";
-prog_options.pressure_suffix_txt = "mb";
-
-prog_options.wind_dir_txt = "Wind Direction";
-prog_options.wind_dir_suffix_txt = "degrees";
-
-prog_options.wind_speed_txt = "Wind Speed";
-prog_options.wind_speed_suffix_txt = "km/h";
-
-prog_options.wind_gust_txt = "Wind Gust";
-prog_options.wind_gust_suffix_txt = "km/h";
-
-prog_options.forecast_txt = "Forecast";
-prog_options.forecast_suffix_txt = "";
-
-prog_options.trend_txt = "Trend";
-prog_options.trend_suffix_txt = "";
-
-prog_options.wind_chill_txt = "Wind Chill";
-prog_options.wind_chill_suffix_txt = "C";
-
-prog_options.unknown1_txt = "Unknown";
-prog_options.unknown1_suffix_txt = "?";
-
-prog_options.no_reading_txt = "-";
 prog_options.foreground = 0;
 prog_options.fuzzy = 0;
 prog_options.playback_rate = 1;
@@ -292,6 +251,12 @@ prog_options.data_csv = 0;
 
 prog_options.play_data_file = NULL;
 prog_options.record_data_file = NULL;
+
+/* null out all entries in options text */
+for (txt_count = 0; txt_count < FLD_MAX_DEF_OPTION; txt_count++)
+	{
+	prog_options.output_txt[txt_count] = NULL;
+	}
 
 while (1)
 	{
@@ -334,91 +299,91 @@ while (1)
 			prog_options.debug_lvl = atoi(optarg);
 			break;
 		case inside_temp_text:
-			prog_options.in_temp_txt = optarg;
+			prog_options.output_txt[FLD_IN_TEMP] = optarg;
 			break;
 		case inside_temp_suffix_text:
-			prog_options.in_temp_suffix_txt = optarg;
+			prog_options.output_txt[FLD_IN_TEMP_SUFFIX] = optarg;
 			break;
 		case outside_temp_text:
-			prog_options.out_temp_txt = optarg;
+			prog_options.output_txt[FLD_OUT_TEMP] = optarg;
 			break;
 		case outside_temp_suffix_text:
-			prog_options.out_temp_suffix_txt = optarg;
+			prog_options.output_txt[FLD_OUT_TEMP_SUFFIX] = optarg;
 			break;
 		case humidity_text:
-			prog_options.humidity_txt = optarg;
+			prog_options.output_txt[FLD_HUMIDITY] = optarg;
 			break;
 		case humidity_suffix_text:
-			prog_options.humidity_suffix_txt = optarg;
+			prog_options.output_txt[FLD_HUMIDITY_SUFFIX] = optarg;
 			break;
 		case pressure_text:
-			prog_options.pressure_txt = optarg;
+			prog_options.output_txt[FLD_PRESSURE] = optarg;
 			break;
 		case pressure_suffix_text:
-			prog_options.pressure_suffix_txt = optarg;
+			prog_options.output_txt[FLD_PRESSURE_SUFFIX] = optarg;
 			break;
 		case rain_text:
-			prog_options.rain_txt = optarg;
+			prog_options.output_txt[FLD_RAIN] = optarg;
 			break;
 		case rain_suffix_text:
-			prog_options.rain_suffix_txt = optarg;
+			prog_options.output_txt[FLD_RAIN_SUFFIX] = optarg;
 			break;
 		case wind_dir_text:
-			prog_options.wind_dir_txt = optarg;
+			prog_options.output_txt[FLD_WIND_DIR] = optarg;
 			break;
 		case wind_dir_suffix_text:
-			prog_options.wind_dir_suffix_txt = optarg;
+			prog_options.output_txt[FLD_WIND_DIR_SUFFIX] = optarg;
 			break;
 		case wind_speed_text:
-			prog_options.wind_speed_txt = optarg;
+			prog_options.output_txt[FLD_WIND_SPEED] = optarg;
 			break;
 		case wind_speed_suffix_text:
-			prog_options.wind_speed_suffix_txt = optarg;
+			prog_options.output_txt[FLD_WIND_SPEED_SUFFIX] = optarg;
 			break;
 		case wind_gust_text:
-			prog_options.wind_gust_txt = optarg;
+			prog_options.output_txt[FLD_WIND_GUST] = optarg;
 			break;
 		case wind_gust_suffix_text:
-			prog_options.wind_gust_suffix_txt = optarg;
+			prog_options.output_txt[FLD_WIND_GUST_SUFFIX] = optarg;
 			break;
 		case wind_chill_text:
-			prog_options.wind_chill_txt = optarg;
+			prog_options.output_txt[FLD_WIND_CHILL] = optarg;
 			break;
 		case wind_chill_suffix_text:
-			prog_options.wind_chill_suffix_txt = optarg;
+			prog_options.output_txt[FLD_WIND_CHILL_SUFFIX] = optarg;
 			break;
 		case unknown1_text:
-			prog_options.unknown1_txt = optarg;
+			prog_options.output_txt[FLD_UNKNOWN1] = optarg;
 			break;
 		case unknown1_suffix_text:
-			prog_options.unknown1_suffix_txt = optarg;
+			prog_options.output_txt[FLD_UNKNOWN1_SUFFIX] = optarg;
 			break;
 		case forecast_text:
-			prog_options.forecast_txt = optarg;
+			prog_options.output_txt[FLD_FORECAST] = optarg;
 			break;
 		case trend_text:
-			prog_options.trend_txt = optarg;
+			prog_options.output_txt[FLD_TREND] = optarg;
 			break;
 		case date_text:
-			prog_options.date_txt = optarg;
+			prog_options.output_txt[FLD_DATE] = optarg;
 			break;
 		case date_suffix_text:
-			prog_options.date_suffix_txt = optarg;
+			prog_options.output_txt[FLD_DATE_SUFFIX] = optarg;
 			break;
 		case time_text:
-			prog_options.time_txt = optarg;
+			prog_options.output_txt[FLD_TIME] = optarg;
 			break;
 		case time_suffix_text:
-			prog_options.time_suffix_txt = optarg;
+			prog_options.output_txt[FLD_TIME_SUFFIX] = optarg;
 			break;
 		case max_text:
-			prog_options.max_txt = optarg;
+			prog_options.output_txt[FLD_MAX] = optarg;
 			break;
 		case min_text:
-			prog_options.min_txt = optarg;
+			prog_options.output_txt[FLD_MIN] = optarg;
 			break;
 		case current_text:
-			prog_options.current_txt = optarg;
+			prog_options.output_txt[FLD_CUR] = optarg;
 			break;
 		case unix_path:
 			prog_options.unix_path = optarg;
@@ -441,9 +406,10 @@ while (1)
 			break;
 		case data_csv:
 			prog_options.data_csv = 1;
-			prog_options.data_prefix="";
-			prog_options.data_separator=",";
-			prog_options.unit_separator=",";
+			prog_options.output_txt[FLD_DATA_PREFIX] = "";
+			prog_options.output_txt[FLD_DATA_SEPARATOR] = ",";
+			prog_options.output_txt[FLD_UNIT_SEPARATOR] = ",";
+			prog_options.output_txt[FLD_NO_READING] = "";
 			break;
 		case '?':
 			fprintf(stderr, "Use --help for more information.\n");
@@ -472,50 +438,50 @@ printf("\t--pressure-adj\n");
 printf("\n");
 printf("Text Output Options:\n");
 printf("\t--date-text\n");
-printf("\t\tDefault: %s\n", prog_options.date_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_DATE]);
 printf("\t--date-suffix-text\n");
 printf("\t--time-text\n");
-printf("\t\tDefault: %s\n", prog_options.time_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_TIME]);
 printf("\t--time-suffix-text\n");
 printf("\t--inside-temp-text\n");
-printf("\t\tDefault: %s\n", prog_options.in_temp_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_IN_TEMP]);
 printf("\t--inside-temp-suffix-text\n");
 printf("\t--outside-temp-text\n");
-printf("\t\tDefault: %s\n", prog_options.out_temp_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_OUT_TEMP]);
 printf("\t--outside-temp-suffix-text\n");
 printf("\t--humidity-text\n");
-printf("\t\tDefault: %s\n", prog_options.humidity_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_HUMIDITY]);
 printf("\t--humidity-suffix-text\n");
 printf("\t--pressure-text\n");
-printf("\t\tDefault: %s\n", prog_options.pressure_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_PRESSURE]);
 printf("\t--pressure-suffix-text\n");
 printf("\t--rain-text\n");
-printf("\t\tDefault: %s\n", prog_options.rain_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_RAIN]);
 printf("\t--rain-suffix-text\n");
 printf("\t--wind-dir-text\n");
-printf("\t\tDefault: %s\n", prog_options.wind_dir_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_WIND_DIR]);
 printf("\t--wind-dir-suffix-text\n");
 printf("\t--wind-speed-text\n");
-printf("\t\tDefault: %s\n", prog_options.wind_speed_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_WIND_SPEED]);
 printf("\t--wind-speed-suffix-text\n");
 printf("\t--wind-gust-text\n");
-printf("\t\tDefault: %s\n", prog_options.wind_gust_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_WIND_GUST]);
 printf("\t--wind-gust-suffix-text\n");
 printf("\t--wind-chill-text\n");
 printf("\t--wind-chill-suffix-text\n");
 printf("\t--forecast-text\n");
-printf("\t\tDefault: %s\n", prog_options.forecast_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_FORECAST]);
 printf("\t--trend-text\n");
-printf("\t\tDefault: %s\n", prog_options.trend_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_TREND]);
 printf("\t--current-text\n");
 printf("\t\tText to display for current reading.\n");
-printf("\t\tDefault: %s\n", prog_options.current_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_CUR]);
 printf("\t--max-text\n");
 printf("\t\tText to display for maximum reading.\n");
-printf("\t\tDefault: %s\n", prog_options.max_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_MAX]);
 printf("\t--min-text\n");
 printf("\t\tText to display for minimum reading.\n");
-printf("\t\tDefault: %s\n", prog_options.min_txt);
+printf("\t\tDefault: %s\n", prog_options.default_txt[FLD_MIN]);
 printf("\n");
 
 printf("Debugging Options:\n");
@@ -534,6 +500,26 @@ printf("\t\tRate at which to play back weather station events.\n");
 printf("\t\tDefault: 1 second.\n");
 			return -1;
 			break;
+		}
+	}
+
+/* set default text strings */
+if (prog_options.data_csv)
+	{
+	set_csv_default_text();
+	}
+else
+	{
+	set_pp_default_text();
+	}
+
+/* process user's command line text options */
+for (txt_count = 0; txt_count < FLD_MAX_DEF_OPTION; txt_count++)
+	{
+	if (prog_options.output_txt[txt_count] == NULL)
+		{
+		prog_options.output_txt[txt_count] =
+			prog_options.default_txt[txt_count];
 		}
 	}
 
@@ -560,7 +546,7 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
 proc_data(int *data)
 {
 unsigned int data_type;
@@ -588,7 +574,7 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
 generic_data_handler(int *data)
 {
 int x;
@@ -613,7 +599,7 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
 set_data_handlers()
 {
 int x;
@@ -626,52 +612,41 @@ for (x = 0; x < DATA_TYPE_MAX; x++)
 
 /* override generic */
 data_handlers[DATA_TYPE_DATE].data_handler = dh_date;
-data_handlers[DATA_TYPE_DATE].display_handler = display_date;
-
 data_handlers[DATA_TYPE_TIME].data_handler = dh_time;
-data_handlers[DATA_TYPE_TIME].display_handler = display_time;
-
 data_handlers[DATA_TYPE_PRESSURE].data_handler = dh_pressure;
-data_handlers[DATA_TYPE_PRESSURE].display_handler = display_pressure;
-
 data_handlers[DATA_TYPE_RAIN].data_handler = dh_rain;
-data_handlers[DATA_TYPE_RAIN].display_handler = display_rain;
-
 data_handlers[DATA_TYPE_OUT_TEMP].data_handler = dh_outtemp;
-data_handlers[DATA_TYPE_OUT_TEMP].display_handler = display_outtemp;
-
 data_handlers[DATA_TYPE_IN_TEMP].data_handler = dh_intemp;
-data_handlers[DATA_TYPE_IN_TEMP].display_handler = display_intemp;
-
 data_handlers[DATA_TYPE_WIND_DIR].data_handler = dh_winddir;
-data_handlers[DATA_TYPE_WIND_DIR].display_handler = display_winddir;
-
 data_handlers[DATA_TYPE_WIND_SPEED].data_handler = dh_windspeed;
-data_handlers[DATA_TYPE_WIND_SPEED].display_handler = display_windspeed;
-
 data_handlers[DATA_TYPE_WIND_GUST].data_handler = dh_windgust;
-data_handlers[DATA_TYPE_WIND_GUST].display_handler = display_windgust;
-
 data_handlers[DATA_TYPE_HUMIDITY].data_handler = dh_humidity;
-data_handlers[DATA_TYPE_HUMIDITY].display_handler = display_humidity;
-
 data_handlers[DATA_TYPE_FORECAST].data_handler = dh_forecast;
-data_handlers[DATA_TYPE_FORECAST].display_handler = display_forecast;
-
 data_handlers[DATA_TYPE_TREND].data_handler = dh_trend;
-data_handlers[DATA_TYPE_TREND].display_handler = display_trend;
-
 data_handlers[DATA_TYPE_WIND_CHILL].data_handler = dh_windchill;
-data_handlers[DATA_TYPE_WIND_CHILL].display_handler = display_windchill;
-
 data_handlers[DATA_TYPE_UNKNOWN1].data_handler = dh_unknown1;
-data_handlers[DATA_TYPE_UNKNOWN1].display_handler = display_unknown1;
 
 return 0;
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
+set_data_displayers()
+{
+if (prog_options.data_csv)
+	{
+	set_csv_data_displayers();
+	}
+else
+	{
+	set_pp_data_displayers();
+	}
+
+return 0;
+}
+
+/*-----------------------------------------------------------------*/
+static int
 wsd_connection_cb(int fd, int eventtypes, void *conn_data)
 {
 int data[NUM_DATA];
@@ -693,8 +668,7 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
-
-void
+static void
 sigexit(int signal)
 {
 
@@ -734,6 +708,7 @@ if (ret)
 	}
 
 ret = set_data_handlers();
+ret = set_data_displayers();
 
 if (prog_options.foreground == 0)
 	{
