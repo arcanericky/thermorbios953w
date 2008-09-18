@@ -81,6 +81,7 @@ struct bw9xx_data
 struct ws9xxd_dataline
 	{
 	char *desc;
+	char *desc_csv;
 	void *value;
 
 	void (*processor)(char *, struct ws9xxd_dataline *);
@@ -102,6 +103,7 @@ static struct ws9xxd_dataline datums[] =
 {
 	{
 	"DATA: Current Outside Temperature: ",	// Description to find
+	",Current,Outside Temperature,",
 		&(weather_data.outTemp),			// Value to change
 		processor_cb,						// callback for change
 											// and loggin
@@ -112,48 +114,56 @@ static struct ws9xxd_dataline datums[] =
 
 	{
 	"DATA: Date: ",
+	",,Date,",
 		&(weather_data.dataready),
-		processor_cb, increment_cb, NULL, NULL
+		processor_cb, increment_cb, prelog_cb, postlog_int_cb
 	},
 
 	{
 	"DATA: Current Pressure: ",
+	",Current,Pressure,",
 		&(weather_data.barometer),
 		processor_cb, atof_cb, NULL, NULL
 	},
 
 	{
 	"DATA: Current Humidity: ",
+	",Current,Humidity,",
 		&(weather_data.inHumidity),
 		processor_cb, atoi_cb, NULL, NULL
 	},
 
 	{
 	"DATA: Current Inside Temperature: ",
+	",Current,Inside Temperature,",
 		&(weather_data.inTemp),
 		processor_cb, atof_cb, NULL, NULL
 	},
 
 	{
 	"DATA: Wind Direction: ",
+	",,Wind Direction,",
 		&(weather_data.direction),
 		processor_cb, atoi_cb, NULL, NULL
 	},
 
 	{
 	"DATA: Current Wind Speed: ",
+	",Current,Wind Speed,",
 		&(weather_data.curWindSpeed),
 		processor_cb, atof_cb, NULL, NULL
 	},
 
 	{
 	"DATA: Current Wind Gust: ",
+	",Current,Wind Gust,",
 		&(weather_data.maxGust),
 		processor_cb, atof_cb, NULL, NULL
 	},
 
 	{
 	"DATA: Current Rain: ",
+	",Current,Rain,",
 		&(weather_data.curRain),
 		processor_cb, atoi_cb, prelog_cb, postlog_int_cb
 	},
@@ -672,13 +682,27 @@ return ret;
 static void processor_cb(char *buf, struct ws9xxd_dataline *d)
 {
 char *s;
+char *datatext = "DATA: ";
 
 if (d->prelog)
 	{
 	(*(d->prelog))(buf, d);
 	}
 
-s = getData(d->desc, buf);
+if (memcmp(datatext, buf, strlen(datatext)) == 0)
+	{
+	s = getData(d->desc, buf);
+	}
+else
+	{
+	/* assume csv */
+	s = strstr(buf, d->desc_csv);
+	if (s != NULL)
+		{
+		s = s + strlen(d->desc_csv);
+		}
+	}
+
 if (s != NULL)
 	{
 	if (d->stringtoval != NULL)
@@ -780,6 +804,11 @@ while (1)
 			if (strstr(buf, wd->desc))
 				{
 				// process ws9xxd data
+				(*(wd->processor))(buf, wd);
+				}
+			else if (strstr(buf, wd->desc_csv))
+				{
+				/* data must be in csv */
 				(*(wd->processor))(buf, wd);
 				}
 				
