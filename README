@@ -1,0 +1,10 @@
+See the individual directories for more detail.
+
+ws9xxd
+	The weather server daemon (and example programs), that connects to the Thermor / BIOS BW9xx weather station and serves weather data to clients.  This has been the main focus of this project.
+
+radlib-patch
+	A pach for radlib, which is a library wview depends on.  This patch allows one to have spaces in the configuration files for wview.  This was created especially because one could not have spaces in the city name.
+
+wview-4.0.1-patch
+	A patch for wview, version 4.0.1, to support ws9xxd.  To use this, you must have ws9xxd working.
