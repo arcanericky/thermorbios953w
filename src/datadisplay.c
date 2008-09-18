@@ -24,12 +24,19 @@
 
 #include "list.h"
 #include "select.h"
-#include "debug.h"
 
 #define TENTHS(a) a / 10, abs(a %10)
 
 extern struct ws_prog_options prog_options;
 extern struct datum_handler data_handlers[DATA_TYPE_MAX];
+extern char bw9xx_date[];
+extern char bw9xx_time[];
+
+static int display_date(int, int *);
+static int display_time(int, int *);
+static int display_winddir(int, int);
+static int display_forecast(int, int);
+static int display_trend(int, int *);
 
 /*-----------------------------------------------------------------*/
 void
@@ -44,6 +51,7 @@ prog_options.default_txt[FLD_DATA_PREFIX] = DEF_DATA_PREFIX_TXT;
 
 prog_options.default_txt[FLD_DATA_SEPARATOR] = DEF_DATA_SEPARATOR_TXT;
 prog_options.default_txt[FLD_UNIT_SEPARATOR] = DEF_UNIT_SEPARATOR_TXT;
+prog_options.default_txt[FLD_RANGE_SEPARATOR] = DEF_RANGE_SEPARATOR_TXT;
 
 prog_options.default_txt[FLD_TIME] = DEF_TIME_TXT;
 prog_options.default_txt[FLD_TIME_SUFFIX] = DEF_TIME_SUFFIX_TXT;
@@ -120,7 +128,7 @@ return;
 }
 
 /*-----------------------------------------------------------------*/
-static void
+void
 output_data(const char *fmt, ...)
 {
 va_list ap;
@@ -134,7 +142,8 @@ if (prog_options.data_csv)
 
 	/* populate date buffer */
 	t = time(NULL);
-	strftime(stampbuf, sizeof (stampbuf), "%F,%T,", localtime(&t));
+	strftime(stampbuf, sizeof (stampbuf), "%F,%T",
+		localtime(&t));
 
 	va_start(ap, fmt);
 
@@ -147,7 +156,14 @@ if (prog_options.data_csv)
 		}
 
 	/* now outbuf is dynamically allocated */
-	outbuf = dyn_sprintf("%s,,%s", stampbuf, databuf);
+	outbuf = dyn_sprintf("%s%s%s%s%s%s%s",
+		stampbuf,
+		prog_options.output_txt[FLD_DATA_SEPARATOR],
+		bw9xx_date,
+		prog_options.output_txt[FLD_DATA_SEPARATOR],
+		bw9xx_time,
+		prog_options.output_txt[FLD_DATA_SEPARATOR],
+		databuf);
 
 	/* done with databuff - free it */
 	xfree(databuf);
@@ -178,10 +194,9 @@ xfree(outbuf);
 return;
 }
 
-#if 0
 /*-----------------------------------------------------------------*/
 static char
-*getrangetext(int x)
+*getrangetxt(int x)
 {
 char *text;
 
@@ -203,45 +218,9 @@ switch (x)
 
 return text;
 }
-#endif
 
 /*-----------------------------------------------------------------*/
-static char
-*hlc(int x)
-{
-/* FIXME: Horrible fixed size array here */
-static char text[15];
-char *format = "%s%s";
-
-switch (x)
-	{
-	case 0x01:
-		snprintf(text, sizeof(text), format,
-			prog_options.output_txt[FLD_DATA_PREFIX],
-			prog_options.output_txt[FLD_MIN]);
-		break;
-	case 0x02:
-		snprintf(text, sizeof(text), format,
-			prog_options.output_txt[FLD_DATA_PREFIX],
-			prog_options.output_txt[FLD_MAX]);
-		break;
-	case 0x03:
-		snprintf(text, sizeof(text), format,
-			prog_options.output_txt[FLD_DATA_PREFIX],
-			prog_options.output_txt[FLD_CUR]);
-		break;
-	default:
-		snprintf(text, sizeof(text), format,
-			prog_options.output_txt[FLD_DATA_PREFIX],
-			"");
-		break;
-	}
-
-return text;
-}
-
-/*-----------------------------------------------------------------*/
-int
+static int
 display_date(int datatype, int *data)
 {
 output_data("%s%s%s%2.2d/%2.2d/%2.2d%s%s\n",
@@ -258,7 +237,7 @@ return (0);
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
 display_time(int datatype, int *data)
 {
 output_data("%s%s%s%2.2d:%2.2d:%2.2d%s%s\n",
@@ -294,8 +273,10 @@ if (value == NULL)
 	return 0;
 	}
 
-output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+output_data("%s%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	getrangetxt(datatype),
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
 	prog_options.output_txt[FLD_HUMIDITY],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	value,
@@ -303,29 +284,6 @@ output_data("%s%s%s%s%s%s\n",
 	prog_options.output_txt[FLD_HUMIDITY_SUFFIX]);
 
 xfree(value);
-
-#if 0
-if ((data | 0xFF) == data)
-	{
-	output_data("%s%s%s%s%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_HUMIDITY],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		prog_options.output_txt[FLD_NO_READING],
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_HUMIDITY_SUFFIX]);
-	}
-else
-	{
-	output_data("%s%s%s%d%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_HUMIDITY],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		data,
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_HUMIDITY_SUFFIX]);
-	}
-#endif
 
 return 0;
 }
@@ -350,8 +308,10 @@ if (value == NULL)
 	return 0;
 	}
 
-output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+output_data("%s%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	getrangetxt(datatype),
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
 	prog_options.output_txt[FLD_IN_TEMP],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	value,
@@ -359,29 +319,6 @@ output_data("%s%s%s%s%s%s\n",
 	prog_options.output_txt[FLD_IN_TEMP_SUFFIX]);
 
 xfree(value);
-
-#if 0
-if ((data | 0xFF00) == data)
-	{
-	output_data("%s%s%s%s%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_IN_TEMP],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		prog_options.output_txt[FLD_NO_READING],
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_IN_TEMP_SUFFIX]);
-	}
-else
-	{
-	output_data("%s%s%s%d.%d%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_IN_TEMP],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		TENTHS(data),
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_IN_TEMP_SUFFIX]);
-	}
-#endif
 
 return 0;
 }
@@ -406,8 +343,10 @@ if (value == NULL)
 	return 0;
 	}
 
-output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+output_data("%s%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	getrangetxt(datatype),
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
 	prog_options.output_txt[FLD_OUT_TEMP],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	value,
@@ -415,29 +354,6 @@ output_data("%s%s%s%s%s%s\n",
 	prog_options.output_txt[FLD_OUT_TEMP_SUFFIX]);
 
 xfree(value);
-
-#if 0
-if ((data | 0xFF00) == data)
-	{
-	output_data("%s%s%s%s%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_OUT_TEMP],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		prog_options.output_txt[FLD_NO_READING],
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_OUT_TEMP_SUFFIX]);
-	}
-else
-	{
-	output_data("%s%s%s%d.%d%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_OUT_TEMP],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		TENTHS(data),
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_OUT_TEMP_SUFFIX]);
-	}
-#endif
 
 return 0;
 }
@@ -462,8 +378,10 @@ if (value == NULL)
 	return 0;
 	}
 
-output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+output_data("%s%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	getrangetxt(datatype),
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
 	prog_options.output_txt[FLD_PRESSURE],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	value,
@@ -471,29 +389,6 @@ output_data("%s%s%s%s%s%s\n",
 	prog_options.output_txt[FLD_PRESSURE_SUFFIX]);
 
 xfree(value);
-
-#if 0
-if ((data | 0xFF00) == data)
-	{
-	output_data("%s%s%s%s%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_PRESSURE],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		prog_options.output_txt[FLD_NO_READING],
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_PRESSURE_SUFFIX]);
-	}
-else
-	{
-	output_data("%s%s%s%d.%d%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_PRESSURE],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		TENTHS(data),
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_PRESSURE_SUFFIX]);
-	}
-#endif
 
 return 0;
 }
@@ -518,8 +413,10 @@ if (value == NULL)
 	return 0;
 	}
 
-output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+output_data("%s%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	getrangetxt(datatype),
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
 	prog_options.output_txt[FLD_RAIN],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	value,
@@ -527,29 +424,6 @@ output_data("%s%s%s%s%s%s\n",
 	prog_options.output_txt[FLD_RAIN_SUFFIX]);
 
 xfree(value);
-
-#if 0
-if ((data | 0xFF00) == data)
-	{
-	output_data("%s%s%s%s%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_RAIN],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		prog_options.output_txt[FLD_NO_READING],
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_RAIN_SUFFIX]);
-	}
-else
-	{
-	output_data("%s%s%s%d%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_RAIN],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		data,
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_RAIN_SUFFIX]);
-	}
-#endif
 
 return 0;
 }
@@ -574,8 +448,10 @@ if (value == NULL)
 	return 0;
 	}
 
-output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+output_data("%s%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	getrangetxt(datatype),
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
 	prog_options.output_txt[FLD_WIND_SPEED],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	value,
@@ -583,29 +459,6 @@ output_data("%s%s%s%s%s%s\n",
 	prog_options.output_txt[FLD_WIND_SPEED_SUFFIX]);
 
 xfree(value);
-
-#if 0
-if ((data | 0xFFFF) == data)
-	{
-	output_data("%s%s%s%s%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_WIND_SPEED],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		prog_options.output_txt[FLD_NO_READING],
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_WIND_SPEED_SUFFIX]);
-	}
-else
-	{
-	output_data("%s%s%s%d.%d%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_WIND_SPEED],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		TENTHS(data),
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_WIND_SPEED_SUFFIX]);
-	}
-#endif
 
 return 0;
 }
@@ -630,8 +483,10 @@ if (value == NULL)
 	return 0;
 	}
 
-output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+output_data("%s%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	getrangetxt(datatype),
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
 	prog_options.output_txt[FLD_WIND_GUST],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	value,
@@ -640,34 +495,11 @@ output_data("%s%s%s%s%s%s\n",
 
 xfree(value);
 
-#if 0
-if ((data | 0xFFFF) == data)
-	{
-	output_data("%s%s%s%s%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_WIND_GUST],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		prog_options.output_txt[FLD_NO_READING],
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_WIND_GUST_SUFFIX]);
-	}
-else
-	{
-	output_data("%s%s%s%d.%d%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_WIND_GUST],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		TENTHS(data),
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_WIND_GUST_SUFFIX]);
-	}
-#endif
-
 return 0;
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
 display_winddir(int datatype, int data)
 {
 char *value;
@@ -687,7 +519,7 @@ if (value == NULL)
 	}
 
 output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+	prog_options.output_txt[FLD_DATA_PREFIX],
 	prog_options.output_txt[FLD_WIND_DIR],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	value,
@@ -696,34 +528,11 @@ output_data("%s%s%s%s%s%s\n",
 
 xfree(value);
 
-#if 0
-if (data == 0x10)
-	{
-	output_data("%s%s%s%s%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_WIND_DIR],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		prog_options.output_txt[FLD_NO_READING],
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_WIND_DIR_SUFFIX]);
-	}
-else
-	{
-	output_data("%s%s%s%d%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_WIND_DIR],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		data,
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_WIND_DIR_SUFFIX]);
-	}
-#endif
-
 return 0;
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
 display_forecast(int datatype, int data)
 {
 char *forecast;
@@ -748,7 +557,7 @@ switch (data)
 	}
 
 output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+	prog_options.output_txt[FLD_DATA_PREFIX],
 	prog_options.output_txt[FLD_FORECAST],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	forecast,
@@ -759,11 +568,11 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
-int
+static int
 display_trend(int datatype, int *data)
 {
 output_data("%s%s%s%d %d%s%s\n",
-	hlc(datatype),
+	prog_options.output_txt[FLD_DATA_PREFIX],
 	prog_options.output_txt[FLD_TREND],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	*(data),
@@ -794,8 +603,10 @@ if (value == NULL)
 	return 0;
 	}
 
-output_data("%s%s%s%s%s%s\n",
-	hlc(datatype),
+output_data("%s%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	getrangetxt(datatype),
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
 	prog_options.output_txt[FLD_WIND_CHILL],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	value,
@@ -804,29 +615,6 @@ output_data("%s%s%s%s%s%s\n",
 
 xfree(value);
 
-#if 0
-if (data == 48028)
-	{
-	output_data("%s%s%s%s%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_WIND_CHILL],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		prog_options.output_txt[FLD_NO_READING],
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_WIND_CHILL_SUFFIX]);
-	}
-else
-	{
-	output_data("%s%s%s%d.%d%s%s\n",
-		hlc(datatype),
-		prog_options.output_txt[FLD_WIND_CHILL],
-		prog_options.output_txt[FLD_DATA_SEPARATOR],
-		TENTHS(data),
-		prog_options.output_txt[FLD_UNIT_SEPARATOR],
-		prog_options.output_txt[FLD_WIND_CHILL_SUFFIX]);
-	}
-#endif
-
 return 0;
 }
 
@@ -834,8 +622,10 @@ return 0;
 int
 display_unknown1(int datatype, int data)
 {
-output_data("%s%s%s%d%s%s\n",
-	hlc(datatype),
+output_data("%s%s%s%s%s%d%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	getrangetxt(datatype),
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
 	prog_options.output_txt[FLD_UNKNOWN1],
 	prog_options.output_txt[FLD_DATA_SEPARATOR],
 	data,

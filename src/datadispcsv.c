@@ -19,32 +19,39 @@
 #endif
 
 #include "thermorwsd.h"
-#include "common.h"
 #include "datadisplay.h"
 #include "datadispcsv.h"
-
-#include "list.h"
-#include "select.h"
-#include "debug.h"
-
-#define TENTHS(a) a / 10, abs(a %10)
+#include "common.h"
 
 extern struct ws_prog_options prog_options;
 extern struct datum_handler data_handlers[DATA_TYPE_MAX];
+
+/* these are overridden from datadisplay.c */
+static int display_time(int, int *);
+static int display_date(int, int *);
+static int display_winddir(int, int);
+static int display_forecast(int, int);
+static int display_trend(int, int *);
+
+char bw9xx_date[9];
+char bw9xx_time[9];
 
 /*-----------------------------------------------------------------*/
 void
 set_csv_default_text()
 {
+/* specific to csv */
+prog_options.output_txt[FLD_NO_READING] = "";
+prog_options.output_txt[FLD_DATA_PREFIX] = "";
+prog_options.output_txt[FLD_DATA_SEPARATOR] = ",";
+prog_options.output_txt[FLD_UNIT_SEPARATOR] = ",";
+prog_options.output_txt[FLD_RANGE_SEPARATOR] = ",";
+strcpy(bw9xx_date, "");
+strcpy(bw9xx_time, "");
+
 prog_options.default_txt[FLD_MAX] = DEF_MAX_TXT;
 prog_options.default_txt[FLD_MIN] = DEF_MIN_TXT;
 prog_options.default_txt[FLD_CUR] = DEF_CUR_TXT;
-prog_options.default_txt[FLD_NO_READING] = DEF_NO_READING_TXT;
-
-prog_options.default_txt[FLD_DATA_PREFIX] = DEF_DATA_PREFIX_TXT;
-
-prog_options.default_txt[FLD_DATA_SEPARATOR] = DEF_DATA_SEPARATOR_TXT;
-prog_options.default_txt[FLD_UNIT_SEPARATOR] = DEF_UNIT_SEPARATOR_TXT;
 
 prog_options.default_txt[FLD_TIME] = DEF_TIME_TXT;
 prog_options.default_txt[FLD_TIME_SUFFIX] = DEF_TIME_SUFFIX_TXT;
@@ -119,5 +126,129 @@ data_handlers[DATA_TYPE_WIND_CHILL].display_handler = display_windchill;
 data_handlers[DATA_TYPE_UNKNOWN1].display_handler = display_unknown1;
 
 return;
+}
+
+/*-----------------------------------------------------------------*/
+static int
+display_date(int datatype, int *data)
+{
+sprintf(bw9xx_date, "%2.2d/%2.2d/%2.2d", data[1], data[2], data[0]);
+
+output_data("%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
+	prog_options.output_txt[FLD_DATE],
+	prog_options.output_txt[FLD_DATA_SEPARATOR],
+	bw9xx_date,
+	prog_options.output_txt[FLD_UNIT_SEPARATOR],
+	prog_options.output_txt[FLD_DATE_SUFFIX]);
+
+return (0);
+}
+
+/*-----------------------------------------------------------------*/
+static int
+display_time(int datatype, int *data)
+{
+sprintf(bw9xx_time, "%2.2d:%2.2d:%2.2d", data[0], data[1], data[2]);
+
+output_data("%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
+	prog_options.output_txt[FLD_TIME],
+	prog_options.output_txt[FLD_DATA_SEPARATOR],
+	bw9xx_time,
+	prog_options.output_txt[FLD_UNIT_SEPARATOR],
+	prog_options.output_txt[FLD_TIME_SUFFIX]);
+
+return (0);
+}
+
+/*-----------------------------------------------------------------*/
+static int
+display_winddir(int datatype, int data)
+{
+char *value;
+
+if (data == 0x10)
+	{
+	value = dyn_sprintf("%s", prog_options.output_txt[FLD_NO_READING]);
+	}
+else
+	{
+	value = dyn_sprintf("%d", data);
+	}
+
+if (value == NULL)
+	{
+	return 0;
+	}
+
+output_data("%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
+	prog_options.output_txt[FLD_WIND_DIR],
+	prog_options.output_txt[FLD_DATA_SEPARATOR],
+	value,
+	prog_options.output_txt[FLD_UNIT_SEPARATOR],
+	prog_options.output_txt[FLD_WIND_DIR_SUFFIX]);
+
+xfree(value);
+
+return 0;
+}
+
+/*-----------------------------------------------------------------*/
+static int
+display_forecast(int datatype, int data)
+{
+char *forecast;
+
+switch (data)
+	{
+	case 0:
+		forecast = "Sunny";
+		break;
+	case 1:
+		forecast = "Partly cloudy";
+		break;
+	case 2:
+		forecast = "Cloudy";
+		break;
+	case 3:
+		forecast = "Rainy";
+		break;
+	default:
+		forecast = prog_options.output_txt[FLD_NO_READING];
+		break;
+	}
+
+output_data("%s%s%s%s%s%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
+	prog_options.output_txt[FLD_FORECAST],
+	prog_options.output_txt[FLD_DATA_SEPARATOR],
+	forecast,
+	prog_options.output_txt[FLD_UNIT_SEPARATOR],
+	prog_options.output_txt[FLD_FORECAST_SUFFIX]);
+
+return 0;
+}
+
+/*-----------------------------------------------------------------*/
+static int
+display_trend(int datatype, int *data)
+{
+output_data("%s%s%s%s%d %d%s%s\n",
+	prog_options.output_txt[FLD_DATA_PREFIX],
+	prog_options.output_txt[FLD_RANGE_SEPARATOR],
+	prog_options.output_txt[FLD_TREND],
+	prog_options.output_txt[FLD_DATA_SEPARATOR],
+	*(data),
+	*(data + 1),
+	prog_options.output_txt[FLD_UNIT_SEPARATOR],
+	prog_options.output_txt[FLD_TREND_SUFFIX]);
+
+return 0;
 }
 

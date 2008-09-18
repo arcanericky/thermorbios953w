@@ -34,14 +34,15 @@
 #define DATA_CURRENT			0x03
 
 /* Default Text */
-#define DEF_MAX_TXT					"Maximum "
-#define DEF_MIN_TXT					"Minimum "
-#define DEF_CUR_TXT					"Current "
+#define DEF_MAX_TXT					"Maximum"
+#define DEF_MIN_TXT					"Minimum"
+#define DEF_CUR_TXT					"Current"
 
 #define DEF_DATA_PREFIX_TXT			"DATA: "
 #define DEF_DATA_SEPARATOR_TXT		": "
 #define DEF_UNIT_SEPARATOR_TXT		" "
 #define DEF_NO_READING_TXT			"-"
+#define DEF_RANGE_SEPARATOR_TXT		" "
 
 #define DEF_TIME_TXT				"Time"
 #define DEF_TIME_SUFFIX_TXT			""
@@ -94,6 +95,7 @@ enum DEF_OPTIONS_TXT
 	FLD_DATA_PREFIX,
 	FLD_DATA_SEPARATOR,
 	FLD_UNIT_SEPARATOR,
+	FLD_RANGE_SEPARATOR,
 	FLD_NO_READING,
 
 	FLD_TIME,

@@ -406,10 +406,6 @@ while (1)
 			break;
 		case data_csv:
 			prog_options.data_csv = 1;
-			prog_options.output_txt[FLD_DATA_PREFIX] = "";
-			prog_options.output_txt[FLD_DATA_SEPARATOR] = ",";
-			prog_options.output_txt[FLD_UNIT_SEPARATOR] = ",";
-			prog_options.output_txt[FLD_NO_READING] = "";
 			break;
 		case '?':
 			fprintf(stderr, "Use --help for more information.\n");
@@ -671,7 +667,6 @@ return 0;
 static void
 sigexit(int signal)
 {
-
 /* FIXME: Code needs cleanup here.  Some of the shutdown functions are
  * correct, but could be restructured, and more need to be called,
  * such as closing all the client connections
