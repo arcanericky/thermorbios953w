@@ -6,5 +6,5 @@ ws9xxd
 radlib-patch
 	A pach for radlib, which is a library wview depends on.  This patch allows one to have spaces in the configuration files for wview.  This was created especially because one could not have spaces in the city name.
 
-wview-4.0.1-patch
+wview-patch
 	A patch for wview, version 4.0.1, to support ws9xxd.  To use this, you must have ws9xxd working.
