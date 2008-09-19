@@ -1,40 +1,30 @@
 
-#
-# This needs to be a Makefile.  Get things rolling for now.
-#
+PGMDIR=wview-4.0.1
+PGMNAME=${PGMDIR}.tar.gz
+PGMMODS=${PGMDIR}-mods
+URL=http://downloads.sourceforge.net/wview
 
-if [ $# -eq 0 ]; then
-	echo Need a wview source directory
-	exit 0
+#rm -f $PGMNAME 2>/dev/null
+rm -rf $PGMDIR
+rm -f $PGMDIR.pat
+
+if [ ! -f $PGMNAME ]
+then
+	wget $URL/$PGMNAME
 fi
 
-wviewdir=$1
-if [ ! -d $wviewdir ]; then
-	echo Invalid wview source directory
-	exit 0
-fi
+echo Unrolling archive
+tar zxf $PGMNAME
+#rm -f $PGMNAME
 
-cat << EOF >> /tmp/fnames$$
-configure.in
-stations/Makefile.am
-stations/BW9xx/bw9xx.c
-stations/BW9xx/bw9xx.h
-stations/BW9xx/Makefile.am
-wviewconfig/Makefile.am
-wviewconfig/wviewconfig.sh
-EOF
-
-filenames=`cat /tmp/fnames$$`
-
-rm -f /tmp/fnames$$
-
-rm -f wview.pat
-
-for name in $filenames
+echo Creating patch
+for name in `cd $PGMMODS; find . -type f -print | grep -v \.svn/`
 do
-	echo $name
-	diff -Nau $wviewdir/$name $name >> wview.pat
+	diff -Nau $PGMDIR/$name $PGMMODS/$name >> $PGMDIR.pat
 done
 
-ls -l wview.pat
+echo Cleaning up
+rm -rf $PGMDIR
 
+echo Done
+ls -l $PGMDIR.pat

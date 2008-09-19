@@ -1,4 +1,7 @@
 
+echo This script does not current work and may be removed in the future.
+exit 1
+
 # What would be great is a Makefile to do all this for the user,
 # but for now, just give them something they can try in an empty
 # directory
