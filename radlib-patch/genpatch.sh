@@ -4,18 +4,27 @@ PGMNAME=${PGMDIR}.tar.gz
 PGMMODS=${PGMDIR}-mods
 URL=http://downloads.sourceforge.net/radlib
 
-rm -f $PGMNAME 2>/dev/null
+#rm -f $PGMNAME 2>/dev/null
 rm -rf $PGMDIR
 rm -f $PGMDIR.pat
 
-wget $URL/$PGMNAME
-tar zxf $PGMNAME
-rm -f $PGMNAME
+if [ ! -f $PGMNAME ]
+then
+	wget $URL/$PGMNAME
+fi
 
-for name in `cd $PGMMODS; find . -type f -print`
+echo Unrolling archive
+tar zxf $PGMNAME
+#rm -f $PGMNAME
+
+echo Creating patch
+for name in `cd $PGMMODS; find . -type f -print | grep -v \.svn/`
 do
 	diff -Nau $PGMDIR/$name $PGMMODS/$name >> $PGMDIR.pat
 done
 
+echo Cleaning up
 rm -rf $PGMDIR
+
+echo Done
 ls -l $PGMDIR.pat

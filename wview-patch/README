@@ -1,29 +1,32 @@
+
+--------------------------------------------------------------------------
 DO NOT SKIP THESE FIRST STEPS
 Obtain a copy of wview (http://www.wviewweather.com), preferably 4.0.1, as I haven't tried it with anything else yet.  Read the documentation and learn how to use it.  Install any libraries that wview depends on (namely, radlib and libgd2).  Configure and make it, enabling the "Simulator" (with ./configure --enable-station-sim).  Install wview with "make install-env", then learn how to configure it and use the simulator to cause wview to generate web pages.  This will involve learning to start (wview start) and stop (wview stop) wview itself.  You'll also need to edit configuration files, such as /usr/local/etc/wview/wview.conf and /usr/local/etc/wview/htmlgen.conf.
 
 Learning to use and run wview, as well as viewing wview's html pages is beyond the scope of this document.  Do not proceed until you have a verified, working copy of wview in Simulator mode.  Once you have wview running using the station Simulator, converting it to use ws9xxd will be straightforward compared to the uphill battle of setting up wview in Simulator mode for the first time.
 
 Again, DO NOT SKIP THESE FIRST STEPS ABOVE.  This cannot be stressed enough.
+--------------------------------------------------------------------------
 
 You'll need to patch your working copy of wview.  If you did not skip the steps above, you should be able to patch your working copy directly.
 
-Before proceeding, you'll need some of the GNU autotools utilities.  Installation of these is distribution dependent, so you're on your own here.  At the very least, you'll need the programs aclocal, autoconf, and automake.  In my Ubuntu / Debian distribution, these are in the packages automake and autoconf.
+Before proceeding, you'll need some of the GNU autotools utilities.  Installation of these is distribution dependent, so you're on your own here.  At the very least, you'll need the programs aclocal, autoconf, and automake.  In my Ubuntu / Debian distribution, these are in the packages automake and autoconf and can be installed iwth:
+	$ sudo apt-get install automake autoconf
 
 First, generate the patch by running the genpatch.sh script.  Run the script from the wview patch directory:
-	$ cd wview-4.0.1-patch
-	$ sh genpatch.sh /path/to/wview/directory
+	$ cd wview-patch
+	$ sh genpatch.sh
 
-For example, if your wview directory is located at /home/mark/wview-4.0.1, the command will be:
-$ sh genpatch.sh /home/mark/wview-4.0.1
+The script will download wview, unroll it and generate a patch using it.  Once the script is done, it will remove the wview source directory, but leave the downloaded wview-x-y-z.tar.gz file in the event you need to execute genpatch.sh again.
 
-At this point, you should find a patch file named wview.pat located in the wview patch directory.
-$ ls -l wview.pat
--rw-r--r-- 1 mark mark 25040 2008-09-08 11:40 wview.pat
+At this point, you should find a patch file named wview-x-y-z.pat located in the wview patch directory.
+	$ ls -l wview*.pat
+	-rw-r--r-- 1 mark mark 25040 2008-09-08 11:40 wview-4.0.1.pat
 
 Now that you have a patch file, it's time to patch your working copy of wview.  Switch over to your wview source directory and then patch the file.  You may want to copy the patch file over to your wview source directory for convenience.  Following the examples above, this would be:
-$ cp wview.pat /home/mark/wview-4.0.1
-$ cd /home/mark/wview-4.0.1
-$ patch -p0 < wview.pat
+	$ cp wview-4.0.1.pat /home/mark/wview-4.0.1
+	$ cd /home/mark/wview-4.0.1
+	$ patch -p1 < wview-4.0.1.pat
 
 At this point, the patcher should emit something like the following:
 patching file configure.in

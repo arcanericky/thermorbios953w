@@ -1,1 +1,1 @@
-bin_PROGRAMS = wsdclient example
+noinst_PROGRAMS = wsdclient example
