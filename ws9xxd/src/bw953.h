@@ -9,7 +9,7 @@ struct bw953_device_options
 	int (*ws_start)(int);
 	int (*ws_stop)(int);
 
-	int (*ws_write)(int, char *, int);
+	int (*ws_write)(int, unsigned char *, int);
 	int (*ws_read)(int, int *);
 
 	long usage_code;

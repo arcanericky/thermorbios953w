@@ -70,7 +70,8 @@ int
 bw953_start(int fd)
 {
 #define START_MSG_LEN 16
-char start_msgs[][START_MSG_LEN] = {
+unsigned char start_msgs[][START_MSG_LEN] = {
+#if 0
 	{
 	0x00, 0x01, 0x11, 0x00,  0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
@@ -79,6 +80,7 @@ char start_msgs[][START_MSG_LEN] = {
 	0x00, 0x01, 0x17, 0x01,  0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
 	},
+#endif
 	{
 	0x00, 0x01, 0x17, 0x02,  0xff, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
@@ -102,7 +104,10 @@ for (x = 0; x <  3; x++)
 		return 1;
 		}
 
-	sleep(1);
+	if (prog_options.fuzzy == 0 && prog_options.play_data_file == NULL)
+		{
+		sleep(1);
+		}
 	}
 
 return 0;
@@ -113,15 +118,16 @@ return 0;
 int
 bw953_stop(int fd)
 {
-/* FIXME: Send the stop message one day */
-#if 0
-char stop_msg1[] = {
+#define STOP_MSG_LEN 16
+unsigned char stop_msg1[] = {
 	0x00, 0x01, 0x16, 0x03,  0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
 	};
-#endif
 
-close(fd);
+(*dev_options.ws_write)(fd, stop_msg1, STOP_MSG_LEN);
+sleep(1);
+
+#undef STOP_MSG_LEN
 
 return 0;
 }
@@ -174,7 +180,7 @@ return ret;
 
 /*-----------------------------------------------------------------*/
 int
-bw953_write(int fd, char *output, int len)
+bw953_write(int fd, unsigned char *output, int len)
 {
 struct hiddev_usage_ref_multi uref;
 struct hiddev_report_info rinfo;

@@ -134,7 +134,7 @@ output_data(const char *fmt, ...)
 va_list ap;
 char *outbuf;
 
-if (prog_options.data_csv)
+if (prog_options.output_type == OUTPUT_CSV)
 	{
 	char stampbuf[21];  /* "CCYY/MM/DD,HH:MM:SS," + null */
 	char *databuf;

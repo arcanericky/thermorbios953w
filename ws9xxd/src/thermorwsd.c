@@ -95,6 +95,9 @@ return 0;
 static int
 set_prog_options(int argc, char *argv[])
 {
+#define CONVERT_ADJUSTMENT \
+	(atof(optarg) + ((atof(optarg) < 0) ? -0.05 : 0.05)) * 10
+
 int c;
 int txt_count;
 int option_index;
@@ -160,7 +163,7 @@ enum options
 	fuzzy,
 	playback_rate,
 
-	data_csv,
+	output_type,
 	help
 	};
 
@@ -224,7 +227,7 @@ static struct option long_options[] = {
 	{ "foreground",				no_argument,       0, foreground },
 	{ "fuzzy",					no_argument,       0, fuzzy },
 	{ "playback-rate",			required_argument, 0, playback_rate },
-	{ "data-csv",				no_argument,       0, data_csv },
+	{ "output-type",			required_argument, 0, output_type },
 	{ "help",					no_argument,       0, help },
 	{ 0, 0, 0, 0 }
 	};
@@ -247,7 +250,7 @@ prog_options.device = "/dev/hiddev0";
 prog_options.foreground = 0;
 prog_options.fuzzy = 0;
 prog_options.playback_rate = 1;
-prog_options.data_csv = 0;
+prog_options.output_type = OUTPUT_CSV;
 
 prog_options.play_data_file = NULL;
 prog_options.record_data_file = NULL;
@@ -276,15 +279,15 @@ while (1)
 		{
 		case 'i':
 		case inside_temp_adj:
-			prog_options.in_temp_adj = atoi(optarg);
+			prog_options.in_temp_adj = CONVERT_ADJUSTMENT;
 			break;
 		case 'o':
 		case outside_temp_adj:
-			prog_options.out_temp_adj = atoi(optarg);
+			prog_options.out_temp_adj = CONVERT_ADJUSTMENT;
 			break;
 		case 'p':
 		case pressure_adj:
-			prog_options.pressure_adj = atof(optarg) * 10;
+			prog_options.pressure_adj = CONVERT_ADJUSTMENT;
 			break;
 		case 'd':
 		case device_name:
@@ -404,8 +407,17 @@ while (1)
 		case play_data_file:
 			prog_options.play_data_file = optarg;
 			break;
-		case data_csv:
-			prog_options.data_csv = 1;
+		case output_type:
+			if ((strcmp(optarg, "pp") == 0) ||
+				(strcmp(optarg, "prettyprint") == 0) ||
+				(strcmp(optarg, "pretty-print") == 0))
+				{
+				prog_options.output_type = OUTPUT_PP;
+				}
+			else if (strcmp(optarg, "csv") == 0)
+				{
+				prog_options.output_type = OUTPUT_CSV;
+				}
 			break;
 		case '?':
 			fprintf(stderr, "Use --help for more information.\n");
@@ -425,6 +437,10 @@ printf("\t\t\tMandriva could be: /dev/hiddev0\n");
 printf("\t--unix-path\n");
 printf("\t\tName for Unix domain socket.\n");
 printf("\t\tDefault: %s\n", prog_options.unix_path);
+printf("\t--output-type\n");
+printf("\t\tOptions are:\n");
+printf("\t\t\t\"csv\": Comma Seperated Values (default)\n");
+printf("\t\t\t\"pp\": Pretty Print (human readable)\n");
 printf("\t--log-filename\n");
 printf("\n");
 printf("Reading Adjustment Options:\n");
@@ -500,7 +516,7 @@ printf("\t\tDefault: 1 second.\n");
 	}
 
 /* set default text strings */
-if (prog_options.data_csv)
+if (prog_options.output_type == OUTPUT_CSV)
 	{
 	set_csv_default_text();
 	}
@@ -629,7 +645,7 @@ return 0;
 static int
 set_data_displayers()
 {
-if (prog_options.data_csv)
+if (prog_options.output_type == OUTPUT_CSV)
 	{
 	set_csv_data_displayers();
 	}
@@ -672,6 +688,7 @@ sigexit(int signal)
  * such as closing all the client connections
  */
 
+(*dev_options.ws_stop)(usb_device_fd);
 (*dev_options.ws_close)(usb_device_fd);
 
 close_local_listener();

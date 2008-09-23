@@ -143,6 +143,12 @@ enum DEF_OPTIONS_TXT
 	FLD_MAX_DEF_OPTION
 	};
 
+enum OUTPUT_TYPES
+	{
+	OUTPUT_CSV,
+	OUTPUT_PP
+	};
+
 struct ws_prog_options
 	{
 	char *vendor;
@@ -164,7 +170,8 @@ struct ws_prog_options
 	char *play_data_file;
 
 	int debug_lvl;
-	int data_csv;
+
+	int output_type;
 
 	int out_temp_adj;
 	int in_temp_adj;
