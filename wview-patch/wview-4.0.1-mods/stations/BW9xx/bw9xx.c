@@ -108,15 +108,17 @@ static struct ws9xxd_dataline datums[] =
 		processor_cb,						// callback for change
 											// and loggin
 		atof_cb,							// string to type function
-		prelog_cb,							// log before processing
-		postlog_float_cb					// log after processing
+		NULL,								// log before processing
+											// ex. prelog_cb
+		NULL								// log after processing
+											// ex. postlog_int_cb
 	},
 
 	{
 	"DATA: Date: ",
 	",,Date,",
 		&(weather_data.dataready),
-		processor_cb, increment_cb, prelog_cb, postlog_int_cb
+		processor_cb, increment_cb, NULL, NULL
 	},
 
 	{
@@ -165,7 +167,7 @@ static struct ws9xxd_dataline datums[] =
 	"DATA: Current Rain: ",
 	",Current,Rain,",
 		&(weather_data.curRain),
-		processor_cb, atoi_cb, prelog_cb, postlog_int_cb
+		processor_cb, atoi_cb, NULL, NULL
 	},
 
 	// keep last entry NULL - it's how the loop detects the end
@@ -547,29 +549,37 @@ dest->windSpeed = (USHORT) (KmhToMph(weather_data.curWindSpeed) + 0.5);
 dest->windGust = (USHORT) (KmhToMph(weather_data.maxGust) + 0.5);
 
 // Rainfall must be calculated
+#if 0
 radMsgLog (PRI_STATUS, "curRain: %d, prevRain: %d",
 	weather_data.curRain, weather_data.prevRain);
+#endif
 
 // If current rainfall on station is reset, handle it */
 if (weather_data.prevRain > weather_data.curRain)
 	{
+#if 0
 	radMsgLog(PRI_STATUS, "Resetting prevRain which was %d to curRain"
 		"which is %d", weather_data.prevRain, weather_data.curRain);
+#endif
 	weather_data.prevRain = weather_data.curRain;
 	}
 
 dest->sampleRain = MmToInches(weather_data.curRain -
 	weather_data.prevRain);
 
+#if 0
 radMsgLog(PRI_STATUS, "Delivering %f rain", dest->sampleRain);
+#endif
 
 weather_data.prevRain = weather_data.curRain;
 
 // rain rate must be accumulated and calculated
 sensorAccumAddSample(bw9xxWorkData.rainRateAccumulator, nowTime,
 	dest->sampleRain);
+#if 0
 radMsgLog(PRI_STATUS, "Rain rate: %f",
 	sensorAccumGetTotal(bw9xxWorkData.rainRateAccumulator) * 3);
+#endif
 
 // retrieve rain rate from the accumulator
 dest->rainRate = sensorAccumGetTotal(bw9xxWorkData.rainRateAccumulator);
