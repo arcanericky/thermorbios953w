@@ -561,7 +561,10 @@ return 0;
 static int
 proc_data(int *data)
 {
+#if 0
 unsigned int data_type;
+#endif
+unsigned char data_type;
 
 /* This is the only place where --fuzzy and --play-data-file are */
 /* different and --fuzzy needs to be checked separately */
@@ -576,7 +579,7 @@ data_type = data[3];
 if ((data_type >= DATA_TYPE_MAX) ||
 	(data_handlers[data_type].data_handler == NULL))
 	{
-	fprintf(prog_options.output_fs, "No data handler for %2.2x\n", data_type);
+	fprintf(prog_options.output_fs, "No data handler for 0x%2.2x\n", data_type);
 	return 0;
 	}
 

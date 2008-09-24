@@ -1,5 +1,9 @@
 bin_PROGRAMS = ws9xxd
 
+# define include directories
+INCLUDES = \
+		-DHOST_IS_BIGENDIAN=@HOST_IS_BIGENDIAN@
+
 noinst_HEADERS = bw953.h \
 thermorwsd.h \
 datahandlers.h \

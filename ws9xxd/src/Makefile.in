@@ -84,6 +84,7 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 GREP = @GREP@
+HOST_IS_BIGENDIAN = @HOST_IS_BIGENDIAN@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -148,6 +149,11 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+
+# define include directories
+INCLUDES = \
+		-DHOST_IS_BIGENDIAN=@HOST_IS_BIGENDIAN@
+
 noinst_HEADERS = bw953.h \
 thermorwsd.h \
 datahandlers.h \

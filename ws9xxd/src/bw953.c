@@ -171,7 +171,11 @@ if (ret != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
 
 for (x = 0; x != (ret / sizeof(struct hiddev_event)); x++)
 	{
-	*dest = event[x].value;
+#if HOST_IS_BIGENDIAN
+	*dest = (unsigned char) (event[x].value >> 24);
+#else
+	*dest = (unsigned char) event[x].value;
+#endif
 	dest++;
 	}
 

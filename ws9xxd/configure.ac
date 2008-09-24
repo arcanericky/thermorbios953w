@@ -27,6 +27,11 @@ AC_FUNC_SELECT_ARGTYPES
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([memset select])
 
+# Check for big endian host:
+AC_C_BIGENDIAN([HOST_IS_BIGENDIAN="1"], [HOST_IS_BIGENDIAN="0"], [HOST_IS_BIGENDIAN="0"])
+AM_CONDITIONAL(IS_BIGENDIAN, test x$HOST_IS_BIGENDIAN = x1)
+AC_ARG_VAR([HOST_IS_BIGENDIAN], [host endian flag])
+
 AC_CONFIG_FILES([Makefile
                 src/Makefile
 				examples/Makefile])
