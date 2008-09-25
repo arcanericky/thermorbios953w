@@ -1,3 +1,22 @@
 More documentation to come later.
 
 For now, refer to wview-patch/README and use those directions as a bases for creating and using this radlib patch.
+
+---
+
+This patch fixes radlib to allow spaces in configuration file arguments.  This is mainly to allow the use of spaces in the City and Country fields of configuration files used by wview.
+
+This patch (radlib-2.7.5.pat) must be applied to radlib 2.7.5.
+
+Example:
+
+$ wget http://downloads.sourceforge.net/radlib/radlib-2.7.5.tar.gz
+  ...
+$ tar zxf radlib-2.7.5.tar.gz
+  ...
+$ cd radlib-2.7.5
+  ...
+$ patch -p1 < ../radlib-2.7.5.pat
+  ...
+
+Then ./configure, make, and install it.
