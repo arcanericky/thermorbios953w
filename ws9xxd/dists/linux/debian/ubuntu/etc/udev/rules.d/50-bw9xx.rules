@@ -1,0 +1,19 @@
+#
+# Detect Thermor / BIOS 9xx (bw953 and bw976) Weather Station and
+#   start ws9xxd
+#
+# Modify the call (RUN+=) to ws9xxd as needed.
+#
+# Note that if you are using this on a different distribution, you may
+#   need to change or remove the GROUP entry.
+#
+KERNEL=="hiddev*", SUBSYSTEM=="usb", ATTRS{manufacturer}=="ASICTECH", ATTRS{product}=="USB-WEATHER", SYMLINK+="bw9xx", GROUP="plugdev", RUN+="/usr/local/bin/ws9xxd --device-name /dev/bw9xx"
+
+#
+# The following rule contains entries for idVendor and idProduct and
+# has shown to be compatible with both the bw953 and bw976 - it just
+# hasn't been fully tested yet.
+#
+# KERNEL=="hiddev*", SUBSYSTEM=="usb", ATTRS{idVendor}=="1908", ATTRS{idProduct}=="20a0", ATTRS{manufacturer}=="ASICTECH", ATTRS{product}=="USB-WEATHER", SYMLINK+="bw9xx", GROUP="plugdev", RUN+="/usr/local/bin/ws9xxd --device-name /dev/bw9xx"
+
+

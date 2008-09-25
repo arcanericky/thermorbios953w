@@ -1,5 +1,5 @@
 
-#EXTRA_DIST = wview-4.0.1-patch
+EXTRA_DIST = dists
 
 SUBDIRS = src \
 	examples
