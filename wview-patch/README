@@ -1,51 +1,98 @@
-
 --------------------------------------------------------------------------
-DO NOT SKIP THESE FIRST STEPS
-Obtain a copy of wview (http://www.wviewweather.com), preferably 4.0.1, as I haven't tried it with anything else yet.  Read the documentation and learn how to use it.  Install any libraries that wview depends on (namely, radlib and libgd2).  Configure and make it, enabling the "Simulator" (with ./configure --enable-station-sim).  Install wview with "make install-env", then learn how to configure it and use the simulator to cause wview to generate web pages.  This will involve learning to start (wview start) and stop (wview stop) wview itself.  You'll also need to edit configuration files, such as /usr/local/etc/wview/wview.conf and /usr/local/etc/wview/htmlgen.conf.
+DO NOT SKIP THIS STEP
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-Learning to use and run wview, as well as viewing wview's html pages is beyond the scope of this document.  Do not proceed until you have a verified, working copy of wview in Simulator mode.  Once you have wview running using the station Simulator, converting it to use ws9xxd will be straightforward compared to the uphill battle of setting up wview in Simulator mode for the first time.
+* Download a copy of wview 4.0.1 (http://www.wviewweather.com).
+* Read the wview documentation.
+* Compile wview, enabling the Simulator Station (--enable-station-sim).
+* Install wview (make install-env).
+* Learn to start wview, view the web pages, and stop wview using
+  the Station Simulator.
 
-Again, DO NOT SKIP THESE FIRST STEPS ABOVE.  This cannot be stressed enough.
+You should only proceed once you have wview and the Station Simulator set
+up and working.  There is a fairly steep learning curve involved, and
+any problems you have here need to be addressed with wview.  This
+documentation does not address setting up and learning to use wview.
+
+Once you've done this, the remainder of the document will be relatively
+straightforward.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DO NOT SKIP THIS STEP
 --------------------------------------------------------------------------
 
-You'll need to patch your working copy of wview.  If you did not skip the steps above, you should be able to patch your working copy directly.
+---------------------
+Install GNU Autotools
+---------------------
+Before continuing, you need to install a few of the GNU Autotools
+utilities.  The patch modifies configure.in, and a few of the Makefile.am
+files.  These are used as input to the GNU Autotools to create
+configure and the Makefile.in files, which is normally done for you before
+you download a distributed program.  Installation of these tools is
+distribution dependent.  You'll need to determine how to do this.  The
+programs you will need are:
+  - aclocal
+  - autoconf
+  - automake
 
-Before proceeding, you'll need some of the GNU autotools utilities.  Installation of these is distribution dependent, so you're on your own here.  At the very least, you'll need the programs aclocal, autoconf, and automake.  In my Ubuntu / Debian distribution, these are in the packages automake and autoconf and can be installed iwth:
+On an Ubuntu / Debian system, these can be installed with:
 	$ sudo apt-get install automake autoconf
 
-First, generate the patch by running the genpatch.sh script.  Run the script from the wview patch directory:
-	$ cd wview-patch
-	$ sh genpatch.sh
+-------------
+Install Patch
+-------------
+You will also need to install a program called "patch" to patch the
+source code of wview.  Again, installation is distribution dependent and
+it may already be installed for you.
 
-The script will download wview, unroll it and generate a patch using it.  Once the script is done, it will remove the wview source directory, but leave the downloaded wview-x-y-z.tar.gz file in the event you need to execute genpatch.sh again.
+On an Ubuntu / Debian system, it can be installed with:
+	$ sudo apt-get install patch
 
-At this point, you should find a patch file named wview-x-y-z.pat located in the wview patch directory.
-	$ ls -l wview*.pat
-	-rw-r--r-- 1 mark mark 25040 2008-09-08 11:40 wview-4.0.1.pat
+------------------------
+Apply the Patch to wview
+------------------------
+The patch is applied by applying it using the program "patch", with the
+-p1 option from inside the wview root directory.
+	$ cd wview-4.0.1
+	$ patch -p1 < /path/to/wview-4.0.1.pat
 
-Now that you have a patch file, it's time to patch your working copy of wview.  Switch over to your wview source directory and then patch the file.  You may want to copy the patch file over to your wview source directory for convenience.  Following the examples above, this would be:
-	$ cp wview-4.0.1.pat /home/mark/wview-4.0.1
-	$ cd /home/mark/wview-4.0.1
-	$ patch -p1 < wview-4.0.1.pat
+You should see output similar to:
+	patching file configure.in
+	patching file stations/Makefile.am
+	patching file stations/BW9xx/bw9xx.c
+	patching file stations/BW9xx/bw9xx.h
+	patching file stations/BW9xx/Makefile.am
+	patching file wviewconfig/Makefile.am
+	patching file wviewconfig/wviewconfig.sh
 
-At this point, the patcher should emit something like the following:
-patching file configure.in
-patching file stations/Makefile.am
-patching file stations/BW9xx/bw9xx.c
-patching file stations/BW9xx/bw9xx.h
-patching file stations/BW9xx/Makefile.am
-patching file wviewconfig/Makefile.am
-patching file wviewconfig/wviewconfig.sh
+-------------------------
+Update the Build Routines
+-------------------------
+The modified configure.in and Makefile.am files must now be processed and
+converted to configure and Makefile.in files.  This is done with the GNU
+Autotools mentioned above.  Again, from the wview root directory:
+	$ aclocal
+	$ autoconf
+	$ automake
 
-Next, you'll need to update the package build routines.  Specifically, the makefiles and configure files needed to be created to match the *am and *in files just created or modified.  To do this, run:
-$ aclocal
-$ autoconf
-$ automake
+----------------------------
+Configure, Make, and Install
+----------------------------
+Everything is now ready for you to configure, make and install wview just
+like you did with the Station Simulator.  There should be nothing new
+here - just repeating the steps you did when you were learning to use
+wview with the Station Simulator except you must use the
+--enable-station-bw9xx option.
+	$ ./configure --enable-station-bw9xx
+	$ make
 
-Now, everything is updated and you can proceed just like you did with the simulator.  First, configure it for the BW9xx station, then make it, then install it.  You may need to install as root (and DO NOT use "make install-env" as it will overwrite your configuration files):
-$ configure --enable-station-bw9xx
-$ make
-$ make install
+And when done, you'll need to choose between "make install", which only
+installs the binaries, and "make install-env" which will install both
+the binaries and configuration files (which you may have already changed
+and may not want to overwrite).
 
-You should now be ready to use wview, ws9xxd and your station.  Make sure your weather station is connected, then start ws9xxd.  Check the log file for ws9xxd to make sure it is emitting data, then start wview.  Give it a few minutes, and you should begin to find live data in your html files you learned to use when running the simulator.
-
+You should now be ready to use wview, ws9xxd and your station.  Make sure
+your weather station is connected, then start ws9xxd.  Check the log file
+for ws9xxd to make sure it is emitting data, then start wview.  Give it a
+few minutes, and you should begin to find live data in your html files
+you learned to use when running the Station Simulator.
