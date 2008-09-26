@@ -1,3 +1,5 @@
+/* This file is from the Linux kernel */
+
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
 

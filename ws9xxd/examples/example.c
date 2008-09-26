@@ -69,7 +69,11 @@ if (ret != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
 
 for (x = 0; x != (ret / sizeof(struct hiddev_event)); x++)
 	{
-	*dest = event[x].value;
+#if HOST_IS_BIGENDIAN
+	*dest = (unsigned char) (event[x].value >> 24);
+#else
+	*dest = (unsigned char) event[x].value;
+#endif
 	dest++;
 	}
 
@@ -77,7 +81,7 @@ return ret;
 }
 
 int
-write_data(int fd, char *output, int len)
+write_data(int fd, unsigned char *output, int len)
 {
 struct hiddev_usage_ref_multi uref;
 struct hiddev_report_info rinfo;
@@ -136,21 +140,17 @@ int x;
 char *rtype;
 int data[NUM_DEVICE_EVENTS];
 
-char start_msgs[][16] = { {
-	0x00, 0x01, 0x11, 0x00,  0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
-	}, {
-	0x00, 0x01, 0x17, 0x01,  0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
-	}, {
-	0x00, 0x01, 0x17, 0x02,  0xff, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
-	} };
+unsigned char start_msgs[][16] = {
+		{
+		0x00, 0x01, 0x17, 0x02,  0xff, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
+		}
+	};
 
 #ifdef FUZZ_SIMULATOR
 char *filename = "/dev/urandom";
 #else
-char *filename = "/dev/hiddev0";
+char *filename = "/dev/usb/hiddev0";
 #endif
 
 fd = open(filename, O_RDWR);
@@ -160,12 +160,9 @@ if (fd == -1)
 	return EXIT_FAILURE;
 	}
 
-for (x = 0; x < 3; x++)
-	{
-	write_data(fd, start_msgs[x], 16);
-	read_data(fd, data);
-	sleep(1);
-	}
+write_data(fd, start_msgs[0], 16);
+read_data(fd, data);
+sleep(1);
 
 while (1)
 	{

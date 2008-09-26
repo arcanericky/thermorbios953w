@@ -1,0 +1,28 @@
+Changes to 0.0.3
+
+* Improvements to playing back of recorded weather data (--play-data-file)
+  which is used for testing.
+* Improvements to the help text (--help)
+* Added support for monitoring an unknown data type.  If anyone has
+  any suggestions of what it may be, please let me know.  This may be
+  the wireless signal strength.  Example unknown data is:
+  2008-09-25,10:57:54,01/03/06,17:03:00,,Unknown,1,?
+* Better command line options for controlling the output of ws9xxd.
+* Prevent example programs from being installed when "make install" is
+  used.
+* Bug fixes for improving the success rate of ws9xxd in telling the
+  weather station to start sending data.
+* Bug fixes for the user level calls to the kernel that write data
+  to the weather station.
+* Bug fixes and improvements to adjusting the inside/outside temperature
+  and the pressure.
+* Two output options.  A human readable format that is no longer the
+  default, and a comma seperated value format that has been made
+  the default.
+* Port code to a big endian machine.  This is especially to get
+  the code running on an NSLU2.
+* Added a dists directory to contain examples of how to integrate ws9xxd
+  with different distributions.
+* Move writing to the weather station device improvements from ws9xxd
+  to examples/example.c
+

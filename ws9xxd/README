@@ -1,0 +1,100 @@
+BW9xx Weather Station Daemon
+============================
+
+The weather station daemon is a program to connect to the Thermor / BIOS
+weather stations, read and intrepret the data coming from the station,
+and serve the processed data to any number of clients that connect to it.
+
+The program has been used successfully with the BW953 and BW976 weather
+stations.
+
+**************************************************************************
+
+This program is not meant to be used alone.  To get the most out of it,
+a client program that connects to this ws9xx daemon must be
+used.  With the ws9xxd distribution, there is an example client
+(wsdclient) included.  You can also use wview.  A patch is available
+that allows one to patch, compile, and use wview.  Details for this
+can be found at the end of this document.
+
+Compile and install according the the instructions in INSTALL.  It
+shouldn't take more than the standard "./configure", "make", and
+"make install".
+
+The ws9xx daemon needs at least one important piece of
+information given to it to know how to connect to your weather station,
+and that is the USB device name.
+
+A quick check would be to try to locate /dev/hiddev? or /dev/usb/hiddev?
+and try to confirm that it is your weather station.  Does that
+device file appear when you plug the weather station in?  Does it
+disappear when you unplug the weather station?  If so, then you've
+probably found it.
+
+TODO
+[Add more detailed instructions here]
+
+Once you've found the proper device name, start ws9xxd, giving it the
+device name and run it in the foreground so you can observe the output
+and error messages, if any.  Depending on the permissions of the USB
+device, you may need to run the ws9xx daemon as root.  For
+example, on a test system, the device is at /dev/usb/hiddev0, requiring
+ws9xxd to be ran as:
+$ sudo /usr/local/bin/ws9xxd --device-name /dev/usb/hiddev0 --foreground
+
+A successful run should yield weather statistics to the screen.  Stop the
+program by pressing Ctrl-C.  An example run is:
+
+---
+Running in foreground, logging to screen.
+2008-09-25,10:21:54,,,,Forecast,Partly cloudy,
+2008-09-25,10:21:54,,,,Wind Direction,292,degrees
+2008-09-25,10:21:58,01/03/06,,,Date,01/03/06,
+2008-09-25,10:21:58,01/03/06,16:28:00,,Time,16:28:00,
+2008-09-25,10:22:06,01/03/06,16:28:00,Minimum,Inside Temperature,20.6,C
+2008-09-25,10:22:06,01/03/06,16:28:00,Maximum,Inside Temperature,24.3,C
+2008-09-25,10:22:06,01/03/06,16:28:00,Current,Inside Temperature,22.7,C
+2008-09-25,10:22:06,01/03/06,16:28:00,Minimum,Outside Temperature,20.2,C
+2008-09-25,10:22:06,01/03/06,16:28:00,Maximum,Outside Temperature,33.6,C
+2008-09-25,10:22:06,01/03/06,16:28:00,Current,Outside Temperature,25.5,C
+2008-09-25,10:22:06,01/03/06,16:28:00,Minimum,Wind Chill,,C
+2008-09-25,10:22:06,01/03/06,16:28:00,Maximum,Wind Chill,,C
+2008-09-25,10:22:06,01/03/06,16:28:00,Current,Wind Chill,,C
+---
+
+Once you've verified the ws9xx daemon is connecting to, and reading
+data from the weather station as shown above, you should verify that
+the data is available to any client that wishes to use it.  Run the ws9xx
+daemon, leaving out the foreground option.  The program will detach
+and run in the background.  You can now find the same output as
+above at /tmp/ws9xxd.log while the daemon is running.
+
+Run the example client included with the distribution. You can find this
+client at examples/wsdclient.  It will connect to the weather station
+using the Unix Domain Socket at /tmp/wsd, then retrieve and display the
+data until you stop it with Ctrl-C.  You should see output very similar
+to that of the log file.  There should be no need to run it with root
+privileges.  Any program can connect to the ws9xx daemon and use the
+data.  An examle call is:
+$ examples/wsdclient 
+
+And again, the output is similar to the above log file:
+2008-09-25,10:39:06,01/03/06,16:45:00,Minimum,Inside Temperature,20.6,C
+2008-09-25,10:39:06,01/03/06,16:45:00,Maximum,Inside Temperature,24.3,C
+2008-09-25,10:39:06,01/03/06,16:45:00,Current,Inside Temperature,22.6,C
+2008-09-25,10:39:06,01/03/06,16:45:00,Minimum,Outside Temperature,19.1,C
+2008-09-25,10:39:06,01/03/06,16:45:00,Maximum,Outside Temperature,32.5,C
+2008-09-25,10:39:06,01/03/06,16:45:00,Current,Outside Temperature,25.1,C
+
+From here, you can do a number of things.  For example, can write your own
+client (perhaps a GUI) based on the example code provided.  You may want
+to automatically start the ws9xx daemon when it's plugged into your machine.
+You may find examples showing how to do this using udev in the dists
+directory.  There is currently one at:
+dists/linux/debian/ubuntu/etc/udev/rules.d/50-bw9xxd.rules
+If you have a different distribution or find a different method, please
+let me know and we'll include it on a future release.
+
+TODO
+[Add information about using wview here]
+Perhaps refer them to the wview patch download (when one is created).
