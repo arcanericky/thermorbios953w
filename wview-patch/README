@@ -1,0 +1,63 @@
+------------------
+About This Program
+------------------
+
+This patch is meant to be used with wview-4.0.1.  It is meant to be used
+with the Thermor / BIOS Weather Station Daemon (ws9xxd).  You will need
+to obtain ws9xxd and get it running before using this patch.
+
+Instructions for obtaining wview, learning to use it, and applying this
+patch can be found in the file, INSTALL.  Once you have done this, you
+may want to refer to this README file again for more information.
+
+--------------------
+The Humidity Problem
+--------------------
+
+Or really, the lack of humidity readings problem.  The Thermor / BIOS
+Weather Stations do not have an outside humidity sensor.  The humidity
+sensor is actually located in the inside unit, in the receiver that
+connects to your computer.  Because of this, the outside humidity
+reading is always set to 1% (because setting it to 0% exposes a bug
+in the SQL export functionality, if you enable it).
+
+This artificial setting leads to wview showing incorrect readings for
+things such as dew point, heat index, air density, etc.  You will want
+to edit the html templates that are included with wview and remove
+entries for the above readings.  The charts for temperature and wind
+chill also include the dew point and heat index readings.  You can
+replace these charts by enabling temperature only, and windchill only
+charts in the wview configuration file, images.conf.  You will also
+need to modify the html templates to use the new chart files.
+
+-------------------------------
+Using ws9xxd and wview Together
+-------------------------------
+
+Whenever you need to change the batteries in the weather station,
+making changes to ws9xxd (such as running it with different command
+line parameters), or other tasks which may take the weather station
+offline, you should stop wview, then perform whatever tasks you have.
+
+Before starting wview, you should first run ws9xxd and make sure it
+is serving valid data by checking its log file, or running the
+example client.  Once the data looks good, then you can start wview.
+This helps prevent invalid data from getting inside wview's data files,
+which are a pain to edit out.
+
+------------------
+Outstanding Issues
+------------------
+
+The main, and only real issue known at this point is, what happens when
+the indoor receiver loses connectivity to the outside unit, and what
+happens if the rain or wind sensors go offline (such as getting
+physically disconnected).  We don't know.  I have not yet experimented
+with this situation - my advice is just to try not to let it happen.
+It could be that wviewd itself stops running, and you'll need to
+regain connectivity, and restart wview.  Or perhaps you could get
+incorrect readings.
+
+This problem will be tested for and dealt with in a future release.
+The solution will probably not be perfect, but at least it can be
+handled somewhat gracefully.
