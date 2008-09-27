@@ -29,11 +29,8 @@ utilities.  The patch modifies configure.in, and a few of the Makefile.am
 files.  These are used as input to the GNU Autotools to create
 configure and the Makefile.in files, which is normally done for you before
 you download a distributed program.  Installation of these tools is
-distribution dependent.  You'll need to determine how to do this.  The
+distribution dependent.  You'll need to determine how to do this.
 programs you will need are:
-  - aclocal
-  - autoconf
-  - automake
 
 On an Ubuntu / Debian system, these can be installed with:
 	$ sudo apt-get install automake autoconf
@@ -71,9 +68,7 @@ Update the Build Routines
 The modified configure.in and Makefile.am files must now be processed and
 converted to configure and Makefile.in files.  This is done with the GNU
 Autotools mentioned above.  Again, from the wview root directory:
-	$ aclocal
-	$ autoconf
-	$ automake
+	$ autoreconf
 
 ----------------------------
 Configure, Make, and Install
