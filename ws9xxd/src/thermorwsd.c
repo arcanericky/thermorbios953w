@@ -50,7 +50,6 @@
 #include "datadisplay.h"
 #include "datadispcsv.h"
 
-#include "list.h"
 #include "select.h"
 #include "common.h"
 #include "servers.h"
@@ -110,6 +109,15 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
+/* FIXME: When config file is added, order should be:
+ *   - Process command line options
+ *   - Process config file options
+ *   - Process default options
+ *
+ *   This is in reverse order of precedence, as each option
+ *   processor should only take in an option only if it has not
+ *   yet been set.
+ */
 static int
 set_prog_options(int argc, char *argv[])
 {

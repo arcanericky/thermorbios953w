@@ -40,7 +40,6 @@
 #include "common.h"
 #include "datadisplay.h"
 
-#include "list.h"
 #include "select.h"
 
 #define TENTHS(a) a / 10, abs(a %10)

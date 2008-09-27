@@ -48,7 +48,6 @@
 #include <sys/stat.h>
 #endif
 
-#include "list.h"
 #include "select.h"
 #include "common.h"
 #include "thermorwsd.h"

@@ -19,6 +19,8 @@
 #ifndef _SELECT_H
 #define _SELECT_H
 
+#include "list.h"
+
 #define WSD_FD_READ		0x01
 #define WSD_FD_WRITE	0x02
 #define WSD_FD_EXCEPT	0x04

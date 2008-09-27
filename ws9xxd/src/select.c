@@ -48,7 +48,6 @@
 #include <unistd.h>
 #endif
 
-#include "list.h"
 #include "select.h"
 #include "common.h"
 

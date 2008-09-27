@@ -2,7 +2,8 @@ bin_PROGRAMS = ws9xxd
 
 # define include directories
 INCLUDES = \
-		-DHOST_IS_BIGENDIAN=@HOST_IS_BIGENDIAN@
+		-DHOST_IS_BIGENDIAN=@HOST_IS_BIGENDIAN@ \
+		-DBW9XX_CFG_DIR=$(prefix)/etc/ws9xxd
 
 noinst_HEADERS = bw953.h \
 thermorwsd.h \
