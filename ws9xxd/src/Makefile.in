@@ -48,7 +48,8 @@ PROGRAMS = $(bin_PROGRAMS)
 am_ws9xxd_OBJECTS = bw953.$(OBJEXT) thermorwsd.$(OBJEXT) \
 	datahandlers.$(OBJEXT) datadisplay.$(OBJEXT) \
 	datadispcsv.$(OBJEXT) util.$(OBJEXT) select.$(OBJEXT) \
-	debug.$(OBJEXT) servers.$(OBJEXT)
+	debug.$(OBJEXT) servers.$(OBJEXT) configfile.$(OBJEXT) \
+	setoptions.$(OBJEXT)
 ws9xxd_OBJECTS = $(am_ws9xxd_OBJECTS)
 ws9xxd_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -153,7 +154,7 @@ top_srcdir = @top_srcdir@
 # define include directories
 INCLUDES = \
 		-DHOST_IS_BIGENDIAN=@HOST_IS_BIGENDIAN@ \
-		-DBW9XX_CFG_DIR=$(prefix)/etc/ws9xxd
+		-DBW9XX_CFG_DIR=\"$(prefix)/etc/ws9xxd\"
 
 noinst_HEADERS = bw953.h \
 thermorwsd.h \
@@ -164,6 +165,8 @@ common.h \
 select.h \
 debug.h \
 servers.h \
+configfile.h \
+setoptions.h \
 list.h
 
 ws9xxd_SOURCES = bw953.c \
@@ -174,7 +177,9 @@ datadispcsv.c \
 util.c \
 select.c \
 debug.c \
-servers.c
+servers.c \
+configfile.c \
+setoptions.c
 
 AM_CFLAGS = -Wall
 all: all-am
@@ -244,12 +249,14 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bw953.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/configfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/datadispcsv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/datadisplay.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/datahandlers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/select.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/servers.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setoptions.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/thermorwsd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
 

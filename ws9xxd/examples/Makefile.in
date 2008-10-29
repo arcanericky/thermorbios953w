@@ -144,6 +144,12 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+
+# define include directories
+INCLUDES = \
+		-DHOST_IS_BIGENDIAN=@HOST_IS_BIGENDIAN@ \
+		-DBW9XX_CFG_DIR=\"$(prefix)/etc/ws9xxd\"
+
 all: all-am
 
 .SUFFIXES:

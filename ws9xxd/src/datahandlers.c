@@ -25,6 +25,7 @@
 #endif
 
 #include "thermorwsd.h"
+#include "setoptions.h"
 #include "common.h"
 
 #define DISPLAY_HANDLER(dt, x, y) (*data_handlers[dt].display_handler)(x, y)

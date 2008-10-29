@@ -37,6 +37,7 @@
 #endif
 
 #include "thermorwsd.h"
+#include "setoptions.h"
 #include "common.h"
 #include "datadisplay.h"
 

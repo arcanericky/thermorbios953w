@@ -51,6 +51,7 @@
 #include "select.h"
 #include "common.h"
 #include "thermorwsd.h"
+#include "setoptions.h"
 
 #include "debug.h"
 

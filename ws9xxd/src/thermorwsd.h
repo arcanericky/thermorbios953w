@@ -27,6 +27,9 @@
 
 #define NUM_DATA			8
 
+#if 0
+#define UNIX_PATH	BW9XX_CFG_DIR "/wsd"
+#endif
 #define UNIX_PATH	"/tmp/wsd"
 
 /* Data Types */
@@ -104,6 +107,7 @@
 #define DEF_UNKNOWN1_TXT			"Unknown"
 #define DEF_UNKNOWN1_SUFFIX_TXT		"?"
 
+#if 0
 enum DEF_OPTIONS_TXT
 	{
 	FLD_MAX,
@@ -200,6 +204,7 @@ struct ws_prog_options
 	char *output_txt[FLD_MAX_DEF_OPTION];
 	char *default_txt[FLD_MAX_DEF_OPTION];
 	};
+#endif
 
 struct datum_handler
 	{

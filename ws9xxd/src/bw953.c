@@ -41,6 +41,7 @@
 #endif
 
 #include "thermorwsd.h"
+#include "setoptions.h"
 #include "bw953.h"
 #include "common.h"
 
