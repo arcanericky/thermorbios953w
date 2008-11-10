@@ -86,8 +86,44 @@ installs the binaries, and "make install-env" which will install both
 the binaries and configuration files (which you may have already changed
 and may not want to overwrite).
 
+-----------
+wviewconfig
+-----------
+At this point, run "wviewconfig" like you did with the Station Simulator.
+The two key changes are for the station type and the serial port
+device.
+
+At the "Valid Station Types" prompt, answer with "BW9xx".  Example below:
+
+	Valid Station Types: VantagePro, Simulator, WXT510, WS-2300, WMR918,
+		BW9xx
+	What weather station do you have (one of VantagePro, Simulator, WXT510,
+		WS-2300, WMR918, BW9xx):
+	(BW9XX): BW9xx
+
+Leave the physical interface to serial even though it will be connecting
+to a Unix domain socket.
+
+And finally, for the serial port device, use the Unix domain socket you
+have configured ws9xxd to listen on.  If you haven't changed this, then
+use the default of "/tmp/wsd".  Example below:
+	Serial port (device) the weather station is connected to (/dev/ttyS0,
+		/dev/cuaa0, /dev/ttyUSBx, /dev/tty.SLAB_USBtoUART, etc.)
+	(/dev/ttyS0): /tmp/wsd
+
+Continue through to the end of the configuration.
+
+You also have the alternative of editing wview.conf directly.
+If you elect to do this, then change the STATION_TYPE to "BW9xx" and
+the STATION_DEV to the Unix domain socket (default is "/tmp/wsd").
+
+---------
+Run wview
+---------
 You should now be ready to use wview, ws9xxd and your station.  Make sure
 your weather station is connected, then start ws9xxd.  Check the log file
 for ws9xxd to make sure it is emitting data, then start wview.  Give it a
 few minutes, and you should begin to find live data in your html files
-you learned to use when running the Station Simulator.
+you learned to use when running the Station Simulator.  Also check the
+system messages file (ex. /var/log/messages) for output and troubleshooting
+of wview.

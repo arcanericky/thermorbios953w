@@ -76,6 +76,8 @@ struct bw9xx_data
 
 	pthread_mutex_t locker;		// mutex to use when accessing data
 	int dataready;				// when 1, data ready to be read
+	int humidity_is_outside;
+	char *device;
 	};
 
 struct ws9xxd_dataline
@@ -99,6 +101,7 @@ static void atoi_cb(const char *, void *);
 static void increment_cb(const char *, void *);
 
 static struct bw9xx_data weather_data;
+
 static struct ws9xxd_dataline datums[] =
 {
 	{
@@ -289,6 +292,15 @@ int stationInit
         (*(work->medium.exit)) (&work->medium);
         return ERROR;
     }
+
+    if (stationGetConfigValueInt (work, "HUMIDITY_IS_OUTSIDE", 
+		&weather_data.humidity_is_outside) == ERROR)
+    {
+		weather_data.humidity_is_outside = 0;
+    }
+
+	weather_data.device = work->stationDevice;
+	radMsgLog(PRI_STATUS, "Connecting to %s", weather_data.device);
 
     // set the work archive interval now
     work->archiveInterval = bw9xxWorkData.archiveInterval;
@@ -541,8 +553,24 @@ if (weather_data.dataready < 1)
 dest->barometer = MillibarsToInches(weather_data.barometer);
 dest->outTemp = CelsiusToFahrenheit(weather_data.outTemp);
 dest->inTemp = CelsiusToFahrenheit(weather_data.inTemp);
-dest->inHumidity = weather_data.inHumidity;
 dest->windDir = weather_data.direction;
+
+// If outHumidity is set to 0, it causes a bug where updating the
+// sql database will fail (if sql is enabled), as it sets the
+// dewpoint to "nan".  I guess wview hasn't come across a station
+// that doesn't support outside humidity?  Set outHumidity to 1 to
+// prevent this.  The command that gave an error (at Dewpoint = nan)
+// is:
+// INSERT INTO archive SET RecordTime = "2008-09-10 10:10:00",ArcInt = 5,OutTemp = 76.300003,HiOutTemp = 76.300003,LowOutTemp = 76.300003,InTemp = 75.199997,Barometer = 30.002001,OutHumid = 0.000000,InHumid = 32.000000,Rain = 0.000000,HiRainRate = 0.000000,WindSpeed = 0.000000,HiWindSpeed = 2.000000,WindDir = 112,HiWindDir = 0,Dewpoint = nan,WindChill = 76.300003,HeatIndex = 74.153137
+dest->inHumidity = weather_data.inHumidity;
+if (weather_data.humidity_is_outside)
+	{
+	dest->outHumidity = weather_data.inHumidity;
+	}
+else
+	{
+	dest->outHumidity = 1;
+	}
 
 // these readings need to be rounded
 dest->windSpeed = (USHORT) (KmhToMph(weather_data.curWindSpeed) + 0.5);
@@ -608,15 +636,6 @@ dest->windGustDir= 0;
  */
 dest->dewpoint = 0;
 dest->heatindex = 0;
-
-// If outHumidity is set to 0, it causes a bug where updating the
-// sql database will fail (if sql is enabled), as it sets the
-// dewpoint to "nan".  I guess wview hasn't come across a station
-// that doesn't support outside humidity?  Set outHumidity to 1 to
-// prevent this.  The command that gave an error (at Dewpoint = nan)
-// is:
-// INSERT INTO archive SET RecordTime = "2008-09-10 10:10:00",ArcInt = 5,OutTemp = 76.300003,HiOutTemp = 76.300003,LowOutTemp = 76.300003,InTemp = 75.199997,Barometer = 30.002001,OutHumid = 0.000000,InHumid = 32.000000,Rain = 0.000000,HiRainRate = 0.000000,WindSpeed = 0.000000,HiWindSpeed = 2.000000,WindDir = 112,HiWindDir = 0,Dewpoint = nan,WindChill = 76.300003,HeatIndex = 74.153137
-dest->outHumidity = 1;
 
 /* Decrement dataready since it has been used */
 weather_data.dataready = 0;;
@@ -761,10 +780,10 @@ static void increment_cb(const char *s, void *value)
 }
 
 // Used as a thread to monitor incoming data from ws9xxd and load it
-// as it is reeived, to the global "struct bw9xx_data weather_data" 
+// as it is received, to the global "struct bw9xx_data weather_data" 
 static void *readerThread(void *notused)
 {
-char *path = "/tmp/wsd";
+char *path = weather_data.device;
 char buf[100];
 struct sockaddr_un sun;
 struct ws9xxd_dataline *wd;
@@ -796,7 +815,7 @@ while (1)
 			}
 		else
 			{
-			radMsgLog(PRI_STATUS, "Connected with ws9xxd");
+			radMsgLog(PRI_STATUS, "Connected at %s", weather_data.device);
 			break;
 			}
 		}
@@ -831,7 +850,7 @@ while (1)
 
 	close(fd);
 
-	radMsgLog(PRI_STATUS, "Lost connection with ws9xxd");
+	radMsgLog(PRI_STATUS, "Lost connection with %s", weather_data.device);
 
 	/* Reset dataready back to -1 to wait for another full
 	 * round of data once we are connected to ws9xxd again

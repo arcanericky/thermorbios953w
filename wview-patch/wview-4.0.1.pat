@@ -1,5 +1,5 @@
 --- wview-4.0.1/./stations/Makefile.am	2008-04-09 17:03:48.000000000 -0500
-+++ wview-4.0.1-mods/./stations/Makefile.am	2008-09-22 07:33:33.000000000 -0500
++++ wview-4.0.1-mods/./stations/Makefile.am	2008-09-24 21:24:21.000000000 -0500
 @@ -18,10 +18,13 @@
  if STATION_SIM
  SUBDIRS = Simulator
@@ -16,7 +16,7 @@
 -
 +endif
 --- wview-4.0.1/./stations/BW9xx/bw9xx.h	1969-12-31 18:00:00.000000000 -0600
-+++ wview-4.0.1-mods/./stations/BW9xx/bw9xx.h	2008-09-22 07:33:33.000000000 -0500
++++ wview-4.0.1-mods/./stations/BW9xx/bw9xx.h	2008-09-24 21:24:21.000000000 -0500
 @@ -0,0 +1,70 @@
 +#ifndef INC_bw9xxh
 +#define INC_bw9xxh
@@ -89,7 +89,7 @@
 +#endif
 +
 --- wview-4.0.1/./stations/BW9xx/Makefile.am	1969-12-31 18:00:00.000000000 -0600
-+++ wview-4.0.1-mods/./stations/BW9xx/Makefile.am	2008-09-22 07:33:33.000000000 -0500
++++ wview-4.0.1-mods/./stations/BW9xx/Makefile.am	2008-09-24 21:24:21.000000000 -0500
 @@ -0,0 +1,67 @@
 +# Makefile - Simulator station daemon
 +
@@ -159,8 +159,8 @@
 +endif
 +endif
 --- wview-4.0.1/./stations/BW9xx/bw9xx.c	1969-12-31 18:00:00.000000000 -0600
-+++ wview-4.0.1-mods/./stations/BW9xx/bw9xx.c	2008-09-22 12:52:55.000000000 -0500
-@@ -0,0 +1,845 @@
++++ wview-4.0.1-mods/./stations/BW9xx/bw9xx.c	2008-11-10 10:40:25.000000000 -0600
+@@ -0,0 +1,864 @@
 +/*---------------------------------------------------------------------------
 + 
 +  FILENAME:
@@ -239,6 +239,8 @@
 +
 +	pthread_mutex_t locker;		// mutex to use when accessing data
 +	int dataready;				// when 1, data ready to be read
++	int humidity_is_outside;
++	char *device;
 +	};
 +
 +struct ws9xxd_dataline
@@ -262,6 +264,7 @@
 +static void increment_cb(const char *, void *);
 +
 +static struct bw9xx_data weather_data;
++
 +static struct ws9xxd_dataline datums[] =
 +{
 +	{
@@ -452,6 +455,15 @@
 +        (*(work->medium.exit)) (&work->medium);
 +        return ERROR;
 +    }
++
++    if (stationGetConfigValueInt (work, "HUMIDITY_IS_OUTSIDE", 
++		&weather_data.humidity_is_outside) == ERROR)
++    {
++		weather_data.humidity_is_outside = 0;
++    }
++
++	weather_data.device = work->stationDevice;
++	radMsgLog(PRI_STATUS, "Connecting to %s", weather_data.device);
 +
 +    // set the work archive interval now
 +    work->archiveInterval = bw9xxWorkData.archiveInterval;
@@ -704,8 +716,24 @@
 +dest->barometer = MillibarsToInches(weather_data.barometer);
 +dest->outTemp = CelsiusToFahrenheit(weather_data.outTemp);
 +dest->inTemp = CelsiusToFahrenheit(weather_data.inTemp);
-+dest->inHumidity = weather_data.inHumidity;
 +dest->windDir = weather_data.direction;
++
++// If outHumidity is set to 0, it causes a bug where updating the
++// sql database will fail (if sql is enabled), as it sets the
++// dewpoint to "nan".  I guess wview hasn't come across a station
++// that doesn't support outside humidity?  Set outHumidity to 1 to
++// prevent this.  The command that gave an error (at Dewpoint = nan)
++// is:
++// INSERT INTO archive SET RecordTime = "2008-09-10 10:10:00",ArcInt = 5,OutTemp = 76.300003,HiOutTemp = 76.300003,LowOutTemp = 76.300003,InTemp = 75.199997,Barometer = 30.002001,OutHumid = 0.000000,InHumid = 32.000000,Rain = 0.000000,HiRainRate = 0.000000,WindSpeed = 0.000000,HiWindSpeed = 2.000000,WindDir = 112,HiWindDir = 0,Dewpoint = nan,WindChill = 76.300003,HeatIndex = 74.153137
++dest->inHumidity = weather_data.inHumidity;
++if (weather_data.humidity_is_outside)
++	{
++	dest->outHumidity = weather_data.inHumidity;
++	}
++else
++	{
++	dest->outHumidity = 1;
++	}
 +
 +// these readings need to be rounded
 +dest->windSpeed = (USHORT) (KmhToMph(weather_data.curWindSpeed) + 0.5);
@@ -771,15 +799,6 @@
 + */
 +dest->dewpoint = 0;
 +dest->heatindex = 0;
-+
-+// If outHumidity is set to 0, it causes a bug where updating the
-+// sql database will fail (if sql is enabled), as it sets the
-+// dewpoint to "nan".  I guess wview hasn't come across a station
-+// that doesn't support outside humidity?  Set outHumidity to 1 to
-+// prevent this.  The command that gave an error (at Dewpoint = nan)
-+// is:
-+// INSERT INTO archive SET RecordTime = "2008-09-10 10:10:00",ArcInt = 5,OutTemp = 76.300003,HiOutTemp = 76.300003,LowOutTemp = 76.300003,InTemp = 75.199997,Barometer = 30.002001,OutHumid = 0.000000,InHumid = 32.000000,Rain = 0.000000,HiRainRate = 0.000000,WindSpeed = 0.000000,HiWindSpeed = 2.000000,WindDir = 112,HiWindDir = 0,Dewpoint = nan,WindChill = 76.300003,HeatIndex = 74.153137
-+dest->outHumidity = 1;
 +
 +/* Decrement dataready since it has been used */
 +weather_data.dataready = 0;;
@@ -924,10 +943,10 @@
 +}
 +
 +// Used as a thread to monitor incoming data from ws9xxd and load it
-+// as it is reeived, to the global "struct bw9xx_data weather_data" 
++// as it is received, to the global "struct bw9xx_data weather_data" 
 +static void *readerThread(void *notused)
 +{
-+char *path = "/tmp/wsd";
++char *path = weather_data.device;
 +char buf[100];
 +struct sockaddr_un sun;
 +struct ws9xxd_dataline *wd;
@@ -959,7 +978,7 @@
 +			}
 +		else
 +			{
-+			radMsgLog(PRI_STATUS, "Connected with ws9xxd");
++			radMsgLog(PRI_STATUS, "Connected at %s", weather_data.device);
 +			break;
 +			}
 +		}
@@ -994,7 +1013,7 @@
 +
 +	close(fd);
 +
-+	radMsgLog(PRI_STATUS, "Lost connection with ws9xxd");
++	radMsgLog(PRI_STATUS, "Lost connection with %s", weather_data.device);
 +
 +	/* Reset dataready back to -1 to wait for another full
 +	 * round of data once we are connected to ws9xxd again
@@ -1007,7 +1026,7 @@
 +return NULL;
 +}
 --- wview-4.0.1/./configure.in	2008-07-03 07:45:24.000000000 -0500
-+++ wview-4.0.1-mods/./configure.in	2008-09-22 07:33:33.000000000 -0500
++++ wview-4.0.1-mods/./configure.in	2008-09-24 21:24:21.000000000 -0500
 @@ -53,6 +53,14 @@
  esac],[station_sim=false])
  AM_CONDITIONAL(STATION_SIM, test x$station_sim = xtrue)
@@ -1032,7 +1051,7 @@
                   stations/VantagePro/Makefile \
                   stations/VantagePro/vpconfig/Makefile \
 --- wview-4.0.1/./wviewconfig/Makefile.am	2008-06-06 20:10:45.000000000 -0500
-+++ wview-4.0.1-mods/./wviewconfig/Makefile.am	2008-09-22 07:33:33.000000000 -0500
++++ wview-4.0.1-mods/./wviewconfig/Makefile.am	2008-09-24 21:24:21.000000000 -0500
 @@ -19,6 +19,9 @@
  if STATION_WMR918
  MY_STATION_TYPE = WMR918
@@ -1052,7 +1071,7 @@
  wviewconfig: $(srcdir)/wviewconfig.sh
  	rm -f wviewconfig
 --- wview-4.0.1/./wviewconfig/wviewconfig.sh	2008-06-22 23:19:27.000000000 -0500
-+++ wview-4.0.1-mods/./wviewconfig/wviewconfig.sh	2008-09-22 07:33:33.000000000 -0500
++++ wview-4.0.1-mods/./wviewconfig/wviewconfig.sh	2008-09-24 21:24:21.000000000 -0500
 @@ -120,6 +120,9 @@
          "WMR918" )
              set_non_vp_defaults
