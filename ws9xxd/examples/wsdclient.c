@@ -59,11 +59,7 @@ return ret;
 int
 main()
 {
-#if 0
 char path[] = BW9XX_CFG_DIR "/wsd";
-#endif
-
-char path[] = "/tmp/wsd";
 char buf[80];
 struct sockaddr_un sun;
 int fd;

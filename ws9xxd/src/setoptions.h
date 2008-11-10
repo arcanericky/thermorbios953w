@@ -122,5 +122,6 @@ struct ws_prog_options
 
 int set_dev_options();
 int set_prog_options(int, char *[]);
+int output_prog_options(void);
 
 #endif

@@ -286,6 +286,8 @@ if (prog_options.play_data_file)
 	prog_options.device = prog_options.play_data_file;
 	}
 
+output_prog_options();
+
 usb_device_fd = (*dev_options.ws_open)(prog_options.device);
 if (usb_device_fd < 0)
 	{

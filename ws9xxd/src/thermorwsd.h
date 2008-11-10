@@ -27,10 +27,7 @@
 
 #define NUM_DATA			8
 
-#if 0
 #define UNIX_PATH	BW9XX_CFG_DIR "/wsd"
-#endif
-#define UNIX_PATH	"/tmp/wsd"
 
 /* Data Types */
 #define DATA_TYPE_DATE			0x02

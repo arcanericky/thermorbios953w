@@ -356,6 +356,13 @@ return val;
 
 /*-----------------------------------------------------------------*/
 int
+output_prog_options()
+{
+return 0;
+}
+
+/*-----------------------------------------------------------------*/
+int
 set_prog_options(int argc, char *argv[])
 {
 #define CONVERT_ADJUSTMENT \
