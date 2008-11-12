@@ -109,7 +109,7 @@ int data[NUM_DATA];
 int x;
 int ret;
 
-for (x = 0; x <  3; x++)
+for (x = 0; x < sizeof(start_msgs) / START_MSG_LEN; x++)
 	{
 	ret = (*dev_options.ws_write)(fd, start_msgs[x], START_MSG_LEN);
 	if (ret)
