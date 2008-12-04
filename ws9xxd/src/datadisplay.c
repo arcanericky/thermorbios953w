@@ -347,7 +347,7 @@ display_outtemp(int datatype, int data)
 {
 char *value;
 
-if ((data | 0xFF00) == data)
+if (data == 0xFF00)
 	{
 	value = dyn_sprintf("%s", prog_options.output_txt[FLD_NO_READING]);
 	}
