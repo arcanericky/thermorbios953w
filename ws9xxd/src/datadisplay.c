@@ -312,13 +312,14 @@ display_intemp(int datatype, int data)
 {
 char *value;
 
-if ((data | 0xFF00) == data)
+if (data == 0xFF00)
 	{
 	value = dyn_sprintf("%s", prog_options.output_txt[FLD_NO_READING]);
 	}
 else
 	{
-	value = dyn_sprintf("%d.%d", TENTHS(data));
+	value = dyn_sprintf("%s%d.%d", data < 0 ? "-" : "", abs(data / 10),
+		abs(data % 10));
 	}
 
 if (value == NULL)
@@ -353,7 +354,8 @@ if (data == 0xFF00)
 	}
 else
 	{
-	value = dyn_sprintf("%d.%d", TENTHS(data));
+	value = dyn_sprintf("%s%d.%d", data < 0 ? "-" : "", abs(data / 10),
+		abs(data % 10));
 	}
 
 if (value == NULL)
