@@ -221,7 +221,8 @@ while (1)
 			if ((x | 0xFF00) == x)
 				printf("No Reading\n");
 			else
-				printf("%d.%d C\n", x / 10, abs(x % 10));
+				printf("%s%d.%d", x < 0 ? "-" : "", abs(x / 10),
+					abs(x % 10));
 			break;
 		case 0x14:	/* Inside Temperature */
 			x = (data[5] << 8) + data[6];
@@ -229,7 +230,8 @@ while (1)
 			if ((x | 0xFF00) == x)
 				printf("No Reading\n");
 			else
-				printf("%d.%d C\n", x / 10, abs(x % 10));
+				printf("%s%d.%d", x < 0 ? "-" : "", abs(x / 10),
+					abs(x % 10));
 			break;
 		case 0x15:	/* Wind Directon */
 			x = data[5];
