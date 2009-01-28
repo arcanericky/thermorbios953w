@@ -1,3 +1,19 @@
+Changes to 0.0.4
+
+* Enable the use of a configuration file (command line options will
+  override options in the configuration file) at
+  /usr/local/etc/ws9xxd/ws9xxd.conf.  See the README for more details.
+* Move program files from /tmp to default directory of
+  /usr/local/etc/ws9xxd.  This includes the log file (ws9xxd.log) and
+  the Unix domain socket (wsd).  Note that this means if you use wview
+  in conjuction with ws9xxd, you must specify STATION_DEV in
+  wviewd.conf to point to /usr/local/etc/ws9xxd/wsd
+* Negative temperatures (indoor and outdoor) were incorrectly formatted
+  for the output resulting in no reading when the temperature dropped
+  below freezing (0.0 C).  Fixed.
+* Improper memory access when initialization strings were sent to the
+  station.  Fixed.
+
 Changes to 0.0.3
 
 * Improvements to playing back of recorded weather data (--play-data-file)
