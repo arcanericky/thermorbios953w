@@ -79,22 +79,29 @@ return 0;
 }
 
 /*-----------------------------------------------------------------*/
-char *dyn_vsprintf(const char *fmt, va_list ap)
+char *
+dyn_vsprintf(const char *fmt, va_list ap)
 {
 char *out;
 int len;
 int ret;
+va_list ap2;
+
+va_copy(ap2, ap);
 
 len = vsnprintf(NULL, 0, fmt, ap);
+va_end(ap);
 len++;
 
 out = xmalloc(len);
 if (out == NULL)
 	{
+	va_end(ap2);
 	return NULL;
 	}
 
-ret = vsnprintf(out, len, fmt, ap);
+ret = vsnprintf(out, len, fmt, ap2);
+va_end(ap2);
 
 if (ret >= len)
 	{
