@@ -318,8 +318,21 @@ if (data == 0xFF00)
 	}
 else
 	{
-	value = dyn_sprintf("%s%d.%d", data < 0 ? "-" : "", abs(data / 10),
-		abs(data % 10));
+	div_t divresult;
+	divresult=div(data,10);
+	int number1=divresult.quot;
+	int number2=divresult.rem;
+	
+	if (number1<=-1) 
+	{
+		if (number2!=0)  
+		{		
+			number2=10-abs(number2);
+		}
+		else
+			number1--;
+	}	
+	value=dyn_sprintf("%s%d.%d",data < 0 ? "-" : "", abs(number1),abs(number2));
 	}
 
 if (value == NULL)
@@ -354,10 +367,22 @@ if (data == 0xFF00)
 	}
 else
 	{
-	value = dyn_sprintf("%s%d.%d", data < 0 ? "-" : "", abs(data / 10),
-		abs(data % 10));
+	div_t divresult;
+	divresult=div(data,10);
+	int number1=divresult.quot;
+	int number2=divresult.rem;
+	
+	if (number1<=-1) 
+	{
+		if (number2!=0)
+		{		
+			number2=10-abs(number2);
+		}
+		else
+			number1--;
+	}	
+	value=dyn_sprintf("%s%d.%d",data < 0 ? "-" : "", abs(number1),abs(number2));
 	}
-
 if (value == NULL)
 	{
 	return 0;
@@ -390,7 +415,21 @@ if ((data | 0xFF00) == data)
 	}
 else
 	{
-	value = dyn_sprintf("%d.%d", TENTHS(data));
+	div_t divresult;
+	divresult=div(data,10);
+	int number1=divresult.quot;
+	int number2=divresult.rem;
+	
+	if (number1<=-1) 
+	{
+		if (number2!=0)  
+		{		
+			number2=10-abs(number2);
+		}
+		else
+			number1--;
+	}	
+	value=dyn_sprintf("%s%d.%d",data < 0 ? "-" : "", abs(number1),abs(number2));
 	}
 
 if (value == NULL)
@@ -460,7 +499,22 @@ if ((data | 0xFFFF) == data)
 	}
 else
 	{
-	value = dyn_sprintf("%d.%d", TENTHS(data));
+	div_t divresult;
+	divresult=div(data,10);
+	int number1=divresult.quot;
+	int number2=divresult.rem;
+	
+	if (number1<=-1) 
+	{
+		if (number2!=0)  
+		{		
+			number2=10-abs(number2);
+		}
+		else
+			number1--;
+	}	
+	value=dyn_sprintf("%s%d.%d",data < 0 ? "-" : "", abs(number1),abs(number2));
+	
 	}
 
 if (value == NULL)
@@ -495,7 +549,22 @@ if ((data | 0xFFFF) == data)
 	}
 else
 	{
-	value = dyn_sprintf("%d.%d", TENTHS(data));
+	div_t divresult;
+	divresult=div(data,10);
+	int number1=divresult.quot;
+	int number2=divresult.rem;
+	
+	if (number1<=-1) 
+	{
+		if (number2!=0)  
+		{		
+			number2=10-abs(number2);
+		}
+		else
+			number1--;
+	}	
+	value=dyn_sprintf("%s%d.%d",data < 0 ? "-" : "", abs(number1),abs(number2));
+	
 	}
 
 if (value == NULL)
@@ -615,7 +684,22 @@ if (data == 48028)
 	}
 else
 	{
-	value = dyn_sprintf("%d.%d", TENTHS(data));
+	div_t divresult;
+	divresult=div(data,10);
+	int number1=divresult.quot;
+	int number2=divresult.rem;
+	
+	if (number1<=-1) 
+	{
+		if (number2!=0)  
+		{		
+			number2=10-abs(number2);
+		}
+		else
+			number1--;
+	}	
+	value=dyn_sprintf("%s%d.%d",data < 0 ? "-" : "", abs(number1),abs(number2));
+	
 	}
 
 if (value == NULL)

@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(ws9xxd, 0.0.4, BUG-REPORT-ADDRESS)
+AC_INIT(ws9xxd, 0.0.5, BUG-REPORT-ADDRESS)
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
 

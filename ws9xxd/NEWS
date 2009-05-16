@@ -1,3 +1,10 @@
+Changes to 0.0.5
+
+* Fix handling of va_start()/va_end() so code doesn't segfault on
+  64-bit architectures Thanks for the test system, Aaron.
+* Fix handling of division in data processing to properly handle
+  negative numbers.   Thanks for the bugfix / patch submission Gabor.
+
 Changes to 0.0.4
 
 * Enable the use of a configuration file (command line options will
