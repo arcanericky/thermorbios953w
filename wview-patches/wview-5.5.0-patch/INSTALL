@@ -1,0 +1,126 @@
+--------------------------------------------------------------------------
+DO NOT SKIP THIS STEP
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+* Download a copy of wview 5.5.0 (http://www.wviewweather.com).
+* Read the wview documentation.
+* Compile wview, enabling the Simulator Station (--enable-station-sim).
+* Install wview (make install-env).
+* Learn to start wview, view the web pages, and stop wview using
+  the Station Simulator.
+
+You should only proceed once you have wview and the Station Simulator set
+up and working.  There is a fairly steep learning curve involved, and
+any problems you have here need to be addressed with wview.  This
+documentation does not address setting up and learning to use wview.
+
+Once you've done this, the remainder of the document will be relatively
+straightforward.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DO NOT SKIP THIS STEP
+--------------------------------------------------------------------------
+
+---------------------
+Install GNU Autotools
+---------------------
+Before continuing, you need to install a few of the GNU Autotools
+utilities.  The patch modifies configure.in, and a few of the Makefile.am
+files.  These are used as input to the GNU Autotools to create
+configure and the Makefile.in files, which is normally done for you before
+you download a distributed program.  Installation of these tools is
+distribution dependent.  You'll need to determine how to do this.
+programs you will need are:
+
+On an Ubuntu / Debian system, these can be installed with:
+	$ sudo apt-get install automake autoconf
+
+-------------
+Install Patch
+-------------
+You will also need to install a program called "patch" to patch the
+source code of wview.  Again, installation is distribution dependent and
+it may already be installed for you.
+
+On an Ubuntu / Debian system, it can be installed with:
+	$ sudo apt-get install patch
+
+------------------------
+Apply the Patch to wview
+------------------------
+The patch is applied by applying it using the program "patch", with the
+-p1 option from inside the wview root directory.
+	$ cd wview-5.5.0
+	$ patch -p1 < /path/to/wview-5.5.0.pat
+
+You should see output similar to:
+	patching file ./stations/Makefile.am
+	patching file ./stations/BW9xx/bw9xx.h
+	patching file ./stations/BW9xx/Makefile.am
+	patching file ./stations/BW9xx/bw9xx.c
+	patching file ./configure.in
+	patching file ./wviewconfig/Makefile.am
+	patching file ./examples/conf/wview-conf.sql
+	patching file ./Makefile.am
+
+-------------------------
+Update the Build Routines
+-------------------------
+The modified configure.in and Makefile.am files must now be processed and
+converted to configure and Makefile.in files.  This is done with the GNU
+Autotools mentioned above.  Again, from the wview root directory:
+	$ autoreconf
+
+----------------------------
+Configure, Make, and Install
+----------------------------
+Everything is now ready for you to configure, make and install wview just
+like you did with the Station Simulator.  There should be nothing new
+here - just repeating the steps you did when you were learning to use
+wview with the Station Simulator except you must use the
+--enable-station-bw9xx option.
+	$ ./configure --enable-station-bw9xx
+	$ make
+
+And when done, you'll need to choose between "make install", which only
+installs the binaries, and "make install-env" which will install both
+the binaries and configuration files (which you may have already changed
+and may not want to overwrite).
+
+-----------
+wviewconfig
+-----------
+At this point, run "wviewconfig" like you did with the Station Simulator.
+The two key changes are for the station type and the serial port
+device.
+
+At the "Valid Station Types" prompt, answer with "BW9xx".  Example below:
+
+	Valid Station Types: VantagePro, Simulator, WXT510, WS-2300, WMR918,
+		BW9xx
+	What weather station do you have (one of VantagePro, Simulator, WXT510,
+		WS-2300, WMR918, BW9xx):
+	(BW9XX): BW9xx
+
+Leave the physical interface to serial even though it will be connecting
+to a Unix domain socket.
+
+And finally, for the serial port device, use the Unix domain socket you
+have configured ws9xxd to listen on.  If you haven't changed this, then
+use the default of "/usr/local/etc/ws9xxd/wsd".  Example below:
+	Serial port (device) the weather station is connected to (/dev/ttyS0,
+		/dev/cuaa0, /dev/ttyUSBx, /dev/tty.SLAB_USBtoUART, etc.)
+	(/usr/local/etc/ws9xxd/wsd): /usr/local/etc/ws9xxd/wsd
+
+Continue through to the end of the configuration.
+
+---------
+Run wview
+---------
+You should now be ready to use wview, ws9xxd and your station.  Make sure
+your weather station is connected, then start ws9xxd.  Check the log file
+for ws9xxd to make sure it is emitting data, then start wview.  Give it a
+few minutes, and you should begin to find live data in your html files
+you learned to use when running the Station Simulator.  Also check the
+system messages file (ex. /var/log/messages) for output and troubleshooting
+of wview.

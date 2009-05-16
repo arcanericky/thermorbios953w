@@ -1,0 +1,151 @@
+# Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.5)
+AC_INIT([wview],[5.5.0],[mteel@users.sourceforge.net])
+AC_CONFIG_SRCDIR([ftp/ftpUtils.c])
+AM_INIT_AUTOMAKE([wview],[5.5.0])
+AM_CONFIG_HEADER([config.h])
+
+
+# Determine station type to build:
+AC_ARG_ENABLE(station-vpro,
+[  --enable-station-vpro          build for the Vantage Pro WX Station],
+[case "${enableval}" in
+  yes) station_vpro=true ;;
+  no)  station_vpro=false ;;
+  *) station_vpro=false ;;
+esac],[station_vpro=false])
+AM_CONDITIONAL(STATION_VPRO, test x$station_vpro = xtrue)
+
+AC_ARG_ENABLE(station-wxt510,
+[  --enable-station-wxt510        build for the Vaisala WXT510 WX Station],
+[case "${enableval}" in
+  yes) station_wxt510=true ;;
+  no)  station_wxt510=false ;;
+  *) station_wxt510=false ;;
+esac],[station_wxt510=false])
+AM_CONDITIONAL(STATION_WXT510, test x$station_wxt510 = xtrue)
+
+AC_ARG_ENABLE(station-ws2300,
+[  --enable-station-ws2300        build for the La Crosse WS-2300 series WX Station],
+[case "${enableval}" in
+  yes) station_ws2300=true ;;
+  no)  station_ws2300=false ;;
+  *) station_ws2300=false ;;
+esac],[station_ws2300=false])
+AM_CONDITIONAL(STATION_WS2300, test x$station_ws2300 = xtrue)
+
+AC_ARG_ENABLE(station-wmr918,
+[  --enable-station-wmr918        build for the Oregon Scientific WMR918/968 WX Station],
+[case "${enableval}" in
+  yes) station_wmr918=true ;;
+  no)  station_wmr918=false ;;
+  *) station_wmr918=false ;;
+esac],[station_wmr918=false])
+AM_CONDITIONAL(STATION_WMR918, test x$station_wmr918 = xtrue)
+
+AC_ARG_ENABLE(station-sim,
+[  --enable-station-sim           build for the Simulated Station],
+[case "${enableval}" in
+  yes) station_sim=true ;;
+  no)  station_sim=false ;;
+  *) station_sim=false ;;
+esac],[station_sim=false])
+AM_CONDITIONAL(STATION_SIM, test x$station_sim = xtrue)
+
+AC_ARG_ENABLE(station-bw9xx,
+[  --enable-station-bw9xx           build for the BW9xx Station],
+[case "${enableval}" in
+  yes) station_bw9xx=true ;;
+  no)  station_bw9xx=false ;;
+  *) station_bw9xx=false ;;
+esac],[station_bw9xx=false])
+AM_CONDITIONAL(STATION_BW9XX, test x$station_bw9xx = xtrue)
+
+# Check for big endian host:
+AC_C_BIGENDIAN([HOST_IS_BIGENDIAN="1"], [HOST_IS_BIGENDIAN="0"], [HOST_IS_BIGENDIAN="0"])
+AM_CONDITIONAL(IS_BIGENDIAN, test x$HOST_IS_BIGENDIAN = x1)
+AC_ARG_VAR([HOST_IS_BIGENDIAN], [host endian flag])
+
+# Pass through user doc root specification:
+AC_ARG_VAR([HTTP_DOC_ROOT], [http server document root, for wviewmgmt install location])
+
+# check for inclusion of http support:
+AC_ARG_ENABLE(http,
+[  --enable-http                  include http support (wunderground/weatherforyou) (requires libcurl.a)],
+[case "${enableval}" in
+  yes) http=true ;;
+  no)  http=false ;;
+  *) http=false ;;
+esac],[http=false])
+AM_CONDITIONAL(HTTP, test x$http = xtrue)
+
+
+# Check where to get timezone (GMT offset) from
+AC_STRUCT_TIMEZONE
+
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_CC
+
+# Checks for libraries.
+AC_CHECK_LIB([c], [strncpy])
+AC_CHECK_LIB([gd], [gdImageCreate])
+AC_CHECK_LIB([m], [exp])
+AC_CHECK_LIB([png], [png_write_chunk])
+AC_CHECK_LIB([sqlite3], [sqlite3_open])
+AC_CHECK_LIB([rad], [radSystemGetUpTimeMS])
+AC_CHECK_LIB([z], [inflate])
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS([fcntl.h stdlib.h string.h sys/time.h termios.h unistd.h])
+
+# Checks for typedefs, structures, and compiler characteristics
+AC_C_CONST
+AC_TYPE_PID_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+
+# Checks for library functions.
+AC_FUNC_FORK
+AC_FUNC_MKTIME
+AC_TYPE_SIGNAL
+AC_FUNC_STAT
+AC_CHECK_FUNCS([localtime_r memset mkdir pow strrchr])
+
+AC_CONFIG_FILES([Makefile \
+                 stations/Makefile \
+                 stations/BW9xx/Makefile \
+                 stations/Simulator/Makefile \
+                 stations/VantagePro/Makefile \
+                 stations/VantagePro/vpconfig/Makefile \
+                 stations/WS-2300/Makefile \
+                 stations/WMR918/Makefile \
+                 stations/WXT510/Makefile \
+                 stations/WXT510/wxt510config/Makefile \
+                 htmlgenerator/Makefile \
+                 alarms/Makefile \
+                 cwop/Makefile \
+                 http/Makefile \
+                 ftp/Makefile \
+                 ssh/Makefile \
+                 procmon/Makefile \
+                 wviewconfig/Makefile \
+                 wviewmgmt/Makefile \
+                 dbexport/Makefile \
+                 examples/Makefile \
+                 examples/Debian/Makefile \
+                 examples/FedoraCore/Makefile \
+                 examples/FreeBSD/Makefile \
+                 examples/MacOSX/wview/Makefile \
+                 examples/NSLU2/Makefile \
+                 examples/SuSE/Makefile \
+                 utilities/Makefile \
+                 utilities/wlk2sqlite/Makefile \
+                 utilities/sqlite2wlk/Makefile \
+                 utilities/archive-be2le/Makefile \
+                 utilities/archive-le2be/Makefile \
+                 utilities/hilowcreate/Makefile])
+AC_OUTPUT
