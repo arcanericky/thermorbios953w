@@ -11,6 +11,9 @@ stamp-h1
 ws9xxd/Makefile
 ws9xxd/src/Makefile
 ws9xxd/src/.deps
+ws9xxd/src/ws9xxd
 
 ws9xxd/examples/Makefile
 ws9xxd/examples/.deps
+ws9xxd/examples/example
+ws9xxd/examples/wsdclient
