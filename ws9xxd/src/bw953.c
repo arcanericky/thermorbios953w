@@ -158,15 +158,23 @@ bw953_read(int fd, int *dest)
 int ret;
 int x;
 struct hiddev_event event[NUM_DEVICE_EVENTS];
+int chars_received = 0;
 
-ret = read(fd, &event, sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
-if (ret == -1)
-	{
-	perror("read");
-	return ret;
-	}
+while (chars_received < sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
+{
+   ret = read(fd, (char*)(&event)+chars_received, sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS - chars_received);
+   if (ret == -1)
+   {
+      perror("read");
+      return ret;
+   }
+   if (ret != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
+      fprintf(prog_options.output_fs, "Short read: %d %d\n", ret, sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
 
-datadump("REC", &event, ret);
+   chars_received += ret;
+}
+
+datadump("REC", &event, chars_received);
 
 if (prog_options.record_data_file != NULL)
 	{
@@ -177,18 +185,18 @@ if (prog_options.record_data_file != NULL)
 		S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (rec_fd != -1)
 		{
-		write(rec_fd, &event, ret);
+		write(rec_fd, &event, chars_received);
 		close(rec_fd);
 		}
 	}
 
-if (ret != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
+if (chars_received != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
 	{
-	fprintf(prog_options.output_fs, "Short read: %d\n", ret);	
+	fprintf(prog_options.output_fs, "Short read FAIL: %d %d\n", ret, sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
 	return -1;
 	}
 
-for (x = 0; x != (ret / sizeof(struct hiddev_event)); x++)
+for (x = 0; x != (chars_received / sizeof(struct hiddev_event)); x++)
 	{
 #if HOST_IS_BIGENDIAN
 	*dest = (unsigned char) (event[x].value >> 24);
@@ -198,7 +206,7 @@ for (x = 0; x != (ret / sizeof(struct hiddev_event)); x++)
 	dest++;
 	}
 
-return ret;
+return chars_received;
 }
 
 /*-----------------------------------------------------------------*/
