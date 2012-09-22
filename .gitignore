@@ -1,0 +1,16 @@
+*.o
+
+config.h
+config.log
+config.status
+autom4te.cache
+stamp-h1
+
+./Makefile
+
+ws9xxd/Makefile
+ws9xxd/src/Makefile
+ws9xxd/src/.deps
+
+ws9xxd/examples/Makefile
+ws9xxd/examples/.deps
