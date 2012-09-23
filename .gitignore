@@ -8,6 +8,8 @@ stamp-h1
 
 ./Makefile
 
+ws9xxd/*.tar.gz
+
 ws9xxd/Makefile
 ws9xxd/src/Makefile
 ws9xxd/src/.deps

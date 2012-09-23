@@ -162,16 +162,22 @@ int chars_received = 0;
 
 while (chars_received < sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
 {
-   ret = read(fd, (char*)(&event)+chars_received, sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS - chars_received);
-   if (ret == -1)
-   {
-      perror("read");
-      return ret;
-   }
-   if (ret != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
-      fprintf(prog_options.output_fs, "Short read: %d %d\n", ret, sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
+	ret = read(fd, (char*)(&event)+chars_received,
+		sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS - chars_received);
 
-   chars_received += ret;
+	if (ret == -1)
+	{
+		perror("read");
+		return ret;
+	}
+
+	if (ret != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
+		{
+		fprintf(prog_options.output_fs, "Short read: %d %d\n", ret,
+			sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
+		{
+
+	chars_received += ret;
 }
 
 datadump("REC", &event, chars_received);
@@ -192,7 +198,8 @@ if (prog_options.record_data_file != NULL)
 
 if (chars_received != sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
 	{
-	fprintf(prog_options.output_fs, "Short read FAIL: %d %d\n", ret, sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
+	fprintf(prog_options.output_fs, "Short read FAIL: %d %d\n", ret,
+		sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
 	return -1;
 	}
 
