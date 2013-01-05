@@ -1,0 +1,21 @@
+* text=auto
+*.txt text
+
+*.c text
+*.h text
+
+*.sh text
+*.pat text
+*.sql text
+*.rules text
+
+*.am text
+*.in text
+*.m4 text
+
+INSTALL text
+install-sh text
+AUTHORS text
+ChangeLog text
+NEWS text
+README text
