@@ -175,7 +175,7 @@ while (chars_received < sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS)
 		{
 		fprintf(prog_options.output_fs, "Short read: %d %d\n", ret,
 			sizeof(struct hiddev_event) * NUM_DEVICE_EVENTS);
-		{
+		}
 
 	chars_received += ret;
 }
